@@ -1,35 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import HomePage from './pages/HomePage';
+import Projects from './pages/Projects';
+import ProjectBOM from './pages/ProjectBOM';
+import ComponentCatalogPage from './pages/ComponentCatalogPage';
+import TransactionLogPage from './pages/TransactionLogPage';
+import SignInPage from './pages/SignInPage';
+import SignUpPage from './pages/SignUpPage';
+import Circulation from './pages/Circulation';
 
 function App() {
-  const [count, setCount] = useState(0)
+    const { user, loading } = useAuth();
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    if (loading) {
+        return <div>Loading...</div>; // Or a spinner component
+    }
+
+    return (
+        <Router>
+            {user ? (
+                <>
+                    <Navbar />
+                    <main>
+                        <Routes>
+                            <Route path="/" element={<HomePage />} />
+                            <Route path="/projects" element={<Projects />} />
+                            <Route path="/project/:projectId" element={<ProjectBOM />} />
+                            <Route path="/components" element={<ComponentCatalogPage />} />
+                            <Route path="/transactions" element={<TransactionLogPage />} />
+                            <Route path="/circulation" element={<Circulation />} />
+                            <Route path="*" element={<Navigate to="/" />} />
+                        </Routes>
+                    </main>
+                </>
+            ) : (
+                <Routes>
+                    <Route path="/signin" element={<SignInPage />} />
+                    <Route path="/signup" element={<SignUpPage />} />
+                    <Route path="*" element={<Navigate to="/signin" />} />
+                </Routes>
+            )}
+        </Router>
+    );
 }
 
-export default App
+export default App;

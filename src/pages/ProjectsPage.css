@@ -1,0 +1,45 @@
+.projects-page-container {
+    display: flex;
+    height: calc(100vh - 64px); /* Full height minus app bar */
+    background-color: #f4f6f8;
+}
+
+.projects-left-panel {
+    width: 35%;
+    padding: 40px;
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+}
+
+.projects-branding {
+    margin-bottom: 30px;
+}
+
+.projects-page-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.projects-page-subtitle {
+    font-size: 1.2rem;
+    color: #e16d1f;
+    margin-top: 5px;
+}
+
+.projects-welcome-message {
+    font-size: 1rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+.projects-right-panel {
+    width: 65%;
+    overflow-y: auto;
+    padding: 20px;
+}

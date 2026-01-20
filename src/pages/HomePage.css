@@ -1,0 +1,55 @@
+.home-page-container {
+    display: flex;
+    height: calc(100vh - 64px);
+    background-color: #f4f6f8;
+}
+
+.home-left-panel {
+    width: 25%;
+    padding: 40px;
+    background: linear-gradient(to top right, #9c5e01, #ffffff);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+}
+
+.home-branding {
+    margin-bottom: 30px;
+}
+
+.home-page-title {
+    font-size: 2.5rem;
+    margin: 0;
+}
+
+.charge-part {
+    font-weight: 300;
+    color: black;
+}
+
+.mod-part {
+    font-weight: 700;
+    color: #ed8f03;
+}
+
+.home-right-panel {
+    width: 95%;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.home-search-section, .home-category-section {
+    margin-bottom: 50px;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+.home-search-section h2, .home-category-section h2 {
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin-bottom: 25px;
+    color: #343a40;
+}
