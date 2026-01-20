@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, addDoc, writeBatch } from 'firebase/firestore';
 import './ComponentList.css';
 
 const ComponentList = () => {
-    const [components, setComponents] = useState([]);
+    const [inventory, setInventory] = useState([]);
+    const [components, setComponents] = useState({});
     const [newComponent, setNewComponent] = useState({ 
         name: '', 
         category: '', 
@@ -21,13 +21,21 @@ const ComponentList = () => {
     const [showNewLocationInput, setShowNewLocationInput] = useState(false);
     const [showRemoveLocationUI, setShowRemoveLocationUI] = useState(false);
     const [newLocationName, setNewLocationName] = useState('');
-    const [editingComponentId, setEditingComponentId] = useState(null);
-    const [editedComponentData, setEditedComponentData] = useState({ quantity: '', pricing: '' });
+    const [editingInventoryId, setEditingInventoryId] = useState(null);
+    const [editedInventoryData, setEditedInventoryData] = useState({ quantity: '', pricing: '', manufacturer: '' });
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
 
     useEffect(() => {
+        const unsubscribeInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+            const inventoryData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            setInventory(inventoryData);
+        });
+
         const unsubscribeComponents = onSnapshot(collection(db, 'components'), (snapshot) => {
-            const componentsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            const componentsData = snapshot.docs.reduce((acc, doc) => {
+                acc[doc.id] = doc.data();
+                return acc;
+            }, {});
             setComponents(componentsData);
         });
 
@@ -37,6 +45,7 @@ const ComponentList = () => {
         });
 
         return () => {
+            unsubscribeInventory();
             unsubscribeComponents();
             unsubscribeLocations();
         };
@@ -75,7 +84,7 @@ const ComponentList = () => {
     };
 
     const handleDeleteLocation = async (id) => {
-        const isLocationInUse = components.some(component => component.stockLocation === id);
+        const isLocationInUse = inventory.some(item => item.stockLocation === id);
         if (isLocationInUse) {
             setSnackbar({ open: true, message: 'Cannot delete location as it is currently in use.', type: 'error' });
             return;
@@ -90,9 +99,9 @@ const ComponentList = () => {
     };
 
     const handleAddComponent = async () => {
-        const { name, category, value, footprint, toleranceRating, quantity, stockLocation, pricing } = newComponent;
-        if (!name || !category) {
-            setSnackbar({ open: true, message: 'Category and Name are required.', type: 'error' });
+        const { name, category, value, footprint, toleranceRating, manufacturer, quantity, stockLocation, pricing } = newComponent;
+        if (!name || !category || !stockLocation) {
+            setSnackbar({ open: true, message: 'Category, Name, and Stock Location are required.', type: 'error' });
             return;
         }
 
@@ -100,55 +109,85 @@ const ComponentList = () => {
         const initialQuantity = parseInt(quantity, 10) || 0;
 
         try {
-            await setDoc(doc(db, 'components', componentId), { ...newComponent, quantity: initialQuantity, createdAt: new Date() });
+            const batch = writeBatch(db);
+            const componentRef = doc(db, 'components', componentId);
+            batch.set(componentRef, { name, category, value, footprint, toleranceRating, manufacturer, pricing, createdAt: new Date() });
+
+            const inventoryRef = doc(collection(db, 'inventory'));
+            batch.set(inventoryRef, { componentId, stockLocation, quantity: initialQuantity });
+
+            await batch.commit();
+
             setNewComponent({ name: '', category: '', value: '', footprint: '', toleranceRating: '', manufacturer: '', quantity: '', stockLocation: '', pricing: '' });
-            setSnackbar({ open: true, message: 'Component added successfully!', type: 'success' });
+            setSnackbar({ open: true, message: 'Component and inventory added successfully!', type: 'success' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error adding component: ${error.message}`, type: 'error' });
         }
     };
 
-    const handleDeleteComponent = async (id) => {
+    const handleDeleteInventory = async (id) => {
         try {
-            await deleteDoc(doc(db, 'components', id));
-            setSnackbar({ open: true, message: 'Component deleted successfully!', type: 'success' });
+            await deleteDoc(doc(db, 'inventory', id));
+            setSnackbar({ open: true, message: 'Inventory entry deleted successfully!', type: 'success' });
         } catch (error) {
-            setSnackbar({ open: true, message: `Error deleting component: ${error.message}`, type: 'error' });
+            setSnackbar({ open: true, message: `Error deleting inventory: ${error.message}`, type: 'error' });
         }
     };
 
-    const handleEditClick = (component) => {
-        setEditingComponentId(component.id);
-        setEditedComponentData({ 
-            quantity: component.quantity || 0,
-            pricing: component.pricing || '' 
+    const handleEditClick = (item) => {
+        setEditingInventoryId(item.id);
+        setEditedInventoryData({ 
+            quantity: item.quantity || 0,
+            pricing: components[item.componentId]?.pricing || '', 
+            manufacturer: components[item.componentId]?.manufacturer || ''
         });
     };
 
     const handleCancelEdit = () => {
-        setEditingComponentId(null);
-        setEditedComponentData({ quantity: '', pricing: '' });
+        setEditingInventoryId(null);
+        setEditedInventoryData({ quantity: '', pricing: '', manufacturer: '' });
     };
 
-    const handleUpdateComponent = async () => {
-        if (!editingComponentId) return;
+    const handleUpdateInventory = async () => {
+        if (!editingInventoryId) return;
+        const item = inventory.find(i => i.id === editingInventoryId);
 
         try {
-            const componentRef = doc(db, 'components', editingComponentId);
-            await updateDoc(componentRef, {
-                quantity: parseInt(editedComponentData.quantity, 10) || 0,
-                pricing: editedComponentData.pricing
+            const batch = writeBatch(db);
+            const inventoryRef = doc(db, 'inventory', editingInventoryId);
+            batch.update(inventoryRef, { quantity: parseInt(editedInventoryData.quantity, 10) || 0 });
+
+            const componentRef = doc(db, 'components', item.componentId);
+            batch.update(componentRef, { 
+                pricing: editedInventoryData.pricing, 
+                manufacturer: editedInventoryData.manufacturer 
             });
 
-            setSnackbar({ open: true, message: 'Component updated successfully!', type: 'success' });
+            await batch.commit();
+
+            setSnackbar({ open: true, message: 'Inventory updated successfully!', type: 'success' });
             handleCancelEdit();
         } catch (error) {
-            setSnackbar({ open: true, message: `Error updating component: ${error.message}`, type: 'error' });
+            setSnackbar({ open: true, message: `Error updating inventory: ${error.message}`, type: 'error' });
         }
     };
 
     const handleCloseSnackbar = () => {
         setSnackbar({ open: false, message: '', type: snackbar.type });
+    };
+
+    const renderManufacturerLinks = (manufacturer) => {
+        if (!manufacturer) return null;
+        return manufacturer.split(',').map((link, index) => {
+            const trimmedLink = link.trim();
+            let domain = '';
+            try {
+                domain = new URL(trimmedLink).hostname;
+            } catch (e) {
+                domain = trimmedLink;
+            }
+            return <a key={index} href={trimmedLink} target="_blank" rel="noopener noreferrer">{domain}</a>;
+        }).reduce((prev, curr) => [prev, ', ', curr]);
     };
 
     return (
@@ -164,7 +203,7 @@ const ComponentList = () => {
                 <input type="number" name="quantity" value={newComponent.quantity} onChange={handleInputChange} placeholder="Initial Quantity" />
                 <input type="number" name="pricing" value={newComponent.pricing} onChange={handleInputChange} placeholder="Pricing" />
                 <select name="stockLocation" value={newComponent.stockLocation} onChange={handleInputChange}>
-                    <option value="">Select Location</option>
+                    <option value="">Select Location *</option>
                     {stockLocations.map(location => (
                         <option key={location.id} value={location.id}>{location.name}</option>
                     ))}
@@ -200,42 +239,51 @@ const ComponentList = () => {
                         <th>Stock Location</th>
                         <th>Quantity</th>
                         <th>Pricing</th>
+                        <th>Manufacturer</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {components.map((component) => (
-                        <tr key={component.id}>
-                            <td>{component.id}</td>
-                            <td>{stockLocations.find(loc => loc.id === component.stockLocation)?.name}</td>
-                            {editingComponentId === component.id ? (
+                    {inventory.map((item) => (
+                        <tr key={item.id}>
+                            <td>{item.componentId}</td>
+                            <td>{stockLocations.find(loc => loc.id === item.stockLocation)?.name}</td>
+                            {editingInventoryId === item.id ? (
                                 <>
                                     <td>
                                         <input
                                             type="number"
-                                            value={editedComponentData.quantity}
-                                            onChange={(e) => setEditedComponentData({ ...editedComponentData, quantity: e.target.value })}
+                                            value={editedInventoryData.quantity}
+                                            onChange={(e) => setEditedInventoryData({ ...editedInventoryData, quantity: e.target.value })}
                                         />
                                     </td>
                                     <td>
                                         <input
                                             type="number"
-                                            value={editedComponentData.pricing}
-                                            onChange={(e) => setEditedComponentData({ ...editedComponentData, pricing: e.target.value })}
+                                            value={editedInventoryData.pricing}
+                                            onChange={(e) => setEditedInventoryData({ ...editedInventoryData, pricing: e.target.value })}
                                         />
                                     </td>
                                     <td>
-                                        <button className="action-button edit-button" onClick={handleUpdateComponent}>Save</button>
+                                        <input
+                                            type="text"
+                                            value={editedInventoryData.manufacturer}
+                                            onChange={(e) => setEditedInventoryData({ ...editedInventoryData, manufacturer: e.target.value })}
+                                        />
+                                    </td>
+                                    <td>
+                                        <button className="action-button edit-button" onClick={handleUpdateInventory}>Save</button>
                                         <button className="action-button cancel-button" onClick={handleCancelEdit}>Cancel</button>
                                     </td>
                                 </> 
                             ) : (
                                 <>
-                                    <td>{component.quantity || 0}</td>
-                                    <td>{component.pricing}</td>
+                                    <td>{item.quantity || 0}</td>
+                                    <td>{components[item.componentId]?.pricing}</td>
+                                    <td>{renderManufacturerLinks(components[item.componentId]?.manufacturer)}</td>
                                     <td>
-                                        <button className="action-button edit-button" onClick={() => handleEditClick(component)}>Edit</button>
-                                        <button className="action-button delete-button" onClick={() => handleDeleteComponent(component.id)}>Delete</button>
+                                        <button className="action-button edit-button" onClick={() => handleEditClick(item)}>Edit</button>
+                                        <button className="action-button delete-button" onClick={() => handleDeleteInventory(item.id)}>Delete</button>
                                     </td>
                                 </>
                             )}

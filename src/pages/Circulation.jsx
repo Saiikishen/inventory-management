@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Paper, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
-import { doc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Circulation.css';
 
 const Circulation = () => {
   const [componentId, setComponentId] = useState('');
   const [component, setComponent] = useState(null);
+  const [inventory, setInventory] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [stockLocations, setStockLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -24,16 +25,20 @@ const Circulation = () => {
 
   const handleSearch = async () => {
     if (!componentId) return;
-    const docRef = doc(db, 'components', componentId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const componentData = { id: docSnap.id, ...docSnap.data() };
-      setComponent(componentData);
-      setSelectedLocation(componentData.stockLocation || '');
+    const componentRef = doc(db, 'components', componentId);
+    const componentSnap = await getDoc(componentRef);
+
+    if (componentSnap.exists()) {
+      setComponent({ id: componentSnap.id, ...componentSnap.data() });
+      const q = query(collection(db, 'inventory'), where('componentId', '==', componentId));
+      const querySnapshot = await getDocs(q);
+      const inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
+      setInventory(inventoryData);
       setError('');
       setSuccess('');
     } else {
       setComponent(null);
+      setInventory([]);
       setError('Component not found.');
       setSuccess('');
     }
@@ -51,19 +56,28 @@ const Circulation = () => {
         return;
     }
 
+    const inventoryItem = inventory.find(item => item.stockLocation === selectedLocation);
+    if (!inventoryItem) {
+        setError('Component not found at this location.');
+        setSuccess('');
+        return;
+    }
+
     const newQuantity = operation === 'use' 
-      ? component.quantity - quantity 
-      : component.quantity + Number(quantity);
+      ? inventoryItem.quantity - quantity 
+      : inventoryItem.quantity + Number(quantity);
 
     if (newQuantity < 0) {
-      setError('Cannot use more components than available.');
+      setError('Cannot use more components than available at this location.');
       setSuccess('');
       return;
     }
 
-    const docRef = doc(db, 'components', component.id);
-    await updateDoc(docRef, { quantity: newQuantity, stockLocation: selectedLocation });
-    setComponent({ ...component, quantity: newQuantity, stockLocation: selectedLocation });
+    const inventoryRef = doc(db, 'inventory', inventoryItem.id);
+    await updateDoc(inventoryRef, { quantity: newQuantity });
+
+    const updatedInventory = inventory.map(item => item.id === inventoryItem.id ? {...item, quantity: newQuantity} : item)
+    setInventory(updatedInventory);
     setSuccess(`Successfully ${operation === 'use' ? 'used' : 'returned'} ${quantity} component(s).`);
     setError('');
 
@@ -101,7 +115,11 @@ const Circulation = () => {
             <Box className="component-details">
               <Typography variant="h6" sx={{fontWeight: '600'}}>{component.name}</Typography>
               <Typography>ID: {component.id}</Typography>
-              <Typography>Available: {component.quantity}</Typography>
+              {inventory.map(item => (
+                  <Typography key={item.id}>
+                      {stockLocations.find(loc => loc.id === item.stockLocation)?.name}: {item.quantity}
+                  </Typography>
+              ))}
             </Box>
             <FormControl fullWidth className="circulation-input">
                 <InputLabel>Stock Location</InputLabel>
@@ -110,8 +128,10 @@ const Circulation = () => {
                     label="Stock Location"
                     onChange={(e) => setSelectedLocation(e.target.value)}
                 >
-                    {stockLocations.map(location => (
-                        <MenuItem key={location.id} value={location.id}>{location.name}</MenuItem>
+                    {inventory.map(item => (
+                        <MenuItem key={item.id} value={item.stockLocation}>
+                            {stockLocations.find(loc => loc.id === item.stockLocation)?.name}
+                        </MenuItem>
                     ))}
                 </Select>
             </FormControl>

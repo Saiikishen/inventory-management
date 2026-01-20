@@ -1,34 +1,90 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, TextField, InputAdornment } from '@mui/material';
+import { Box, Typography, TextField, InputAdornment, Chip, List, ListItem, ListItemText, Collapse } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import CategoryList from '../components/CategoryList';
 import { db } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import './HomePage.css';
 
 const HomePage = () => {
-  const [components, setComponents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [searchInventory, setSearchInventory] = useState([]);
+  const [searchError, setSearchError] = useState('');
+  
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [componentsInCategory, setComponentsInCategory] = useState([]);
+  const [stockLocations, setStockLocations] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'components'), (snapshot) => {
-      const componentsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      setComponents(componentsData);
-    });
-    return () => unsubscribe();
+    const fetchInitialData = async () => {
+      // Fetch categories
+      const componentsSnapshot = await getDocs(collection(db, 'components'));
+      const categoriesSet = new Set(componentsSnapshot.docs.map(doc => doc.data().category));
+      setCategories(Array.from(categoriesSet));
+      
+      // Fetch stock locations
+      const locationsQuery = await getDocs(collection(db, 'stock_locations'));
+      const locationsData = locationsQuery.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      setStockLocations(locationsData);
+    };
+
+    fetchInitialData();
   }, []);
 
-  const filteredComponents = useMemo(() => {
-    if (searchQuery === '') {
-      return []; // Clear results when search is empty
+  const handleSearch = async () => {
+    if (!searchQuery) return;
+    setSearchResult(null);
+    setSearchInventory([]);
+    setSelectedCategory(null);
+    setComponentsInCategory([]);
+
+    const componentRef = doc(db, 'components', searchQuery);
+    const componentSnap = await getDoc(componentRef);
+
+    if (componentSnap.exists()) {
+      setSearchResult({ id: componentSnap.id, ...componentSnap.data() });
+      const q = query(collection(db, 'inventory'), where('componentId', '==', searchQuery));
+      const querySnapshot = await getDocs(q);
+      const inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
+      setSearchInventory(inventoryData);
+      setSearchError('');
+    } else {
+        setSearchError('Component not found.');
     }
-    const lowercasedQuery = searchQuery.toLowerCase();
-    return components.filter(component =>
-      (component.name && component.name.toLowerCase().includes(lowercasedQuery)) ||
-      (component.category && component.category.toLowerCase().includes(lowercasedQuery)) ||
-      (component.id && component.id.toLowerCase().includes(lowercasedQuery))
+  };
+
+  const handleCategoryClick = async (category) => {
+    if (selectedCategory === category) {
+      setSelectedCategory(null);
+      setComponentsInCategory([]);
+      return;
+    }
+
+    setSearchResult(null);
+    setSearchError('');
+    setSelectedCategory(category);
+    
+    const q = query(collection(db, 'components'), where('category', '==', category));
+    const querySnapshot = await getDocs(q);
+    const componentsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const componentsWithInventory = await Promise.all(
+        componentsData.map(async (comp) => {
+            const inventoryQuery = query(collection(db, 'inventory'), where('componentId', '==', comp.id));
+            const inventorySnapshot = await getDocs(inventoryQuery);
+            const inventoryData = inventorySnapshot.docs.map(doc => doc.data());
+            const totalQuantity = inventoryData.reduce((sum, item) => sum + item.quantity, 0);
+            return { ...comp, inventory: inventoryData, totalQuantity };
+        })
     );
-  }, [searchQuery, components]);
+    setComponentsInCategory(componentsWithInventory);
+  };
+
+  const getLocationName = (locationId) => {
+    const location = stockLocations.find(loc => loc.id === locationId);
+    return location ? location.name : 'Unknown Location';
+  };
 
   return (
     <Box className="home-page-container">
@@ -42,14 +98,15 @@ const HomePage = () => {
       <Box className="home-right-panel">
         <section className="home-search-section">
           <Typography variant="h4" component="h2" gutterBottom>
-            Search Components
+            Search Components by ID
           </Typography>
           <TextField
             fullWidth
             variant="outlined"
-            placeholder="Search for a component by name, category, or ID..."
+            placeholder="Enter Component ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -58,18 +115,23 @@ const HomePage = () => {
               ),
             }}
           />
-          {searchQuery && (
-            <Box mt={2}>
-              {filteredComponents.length > 0 ? (
-                filteredComponents.map(component => (
-                  <Box key={component.id} p={1} mb={1} sx={{ border: '1px solid #ddd', borderRadius: '4px', display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography>{component.name} ({component.id})</Typography>
-                    <Typography>Stock: {component.quantity || 0}</Typography>
-                  </Box>
-                ))
-              ) : (
-                <Typography mt={2}>No components found.</Typography>
-              )}
+          {searchError && <Typography color="error" sx={{mt: 2}}>{searchError}</Typography>}
+          {searchResult && (
+             <Box mt={2} p={2} sx={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                <Typography variant="h6">{searchResult.name}</Typography>
+                <Typography>ID: {searchResult.id}</Typography>
+                <Box mt={1}>
+                    <Typography variant="subtitle1" sx={{fontWeight: '600'}}>Stock by Location:</Typography>
+                    {searchInventory.length > 0 ? (
+                        searchInventory.map(item => (
+                            <Typography key={item.id}>
+                                {getLocationName(item.stockLocation)}: {item.quantity}
+                            </Typography>
+                        ))
+                    ) : (
+                        <Typography>No stock information available.</Typography>
+                    )}
+                </Box>
             </Box>
           )}
         </section>
@@ -77,7 +139,39 @@ const HomePage = () => {
           <Typography variant="h4" component="h2" gutterBottom>
             Browse by Category
           </Typography>
-          <CategoryList />
+          <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2}}>
+            {categories.map(category => (
+                <Chip 
+                    key={category} 
+                    label={category} 
+                    onClick={() => handleCategoryClick(category)} 
+                    color={selectedCategory === category ? 'primary' : 'default'}
+                />
+            ))}
+          </Box>
+          {selectedCategory && (
+             <List>
+                {componentsInCategory.map(comp => (
+                    <React.Fragment key={comp.id}>
+                        <ListItem className="list-item-container">
+                            <ListItemText 
+                                primary={`${comp.name} (Total: ${comp.totalQuantity})`} 
+                                secondary={`ID: ${comp.id}`}
+                            />
+                        </ListItem>
+                        <Collapse in={true} timeout="auto" unmountOnExit>
+                            <List component="div" disablePadding sx={{ pl: 4 }}>
+                                {comp.inventory.length > 0 ? comp.inventory.map(invItem => (
+                                    <ListItem key={`${comp.id}-${invItem.stockLocation}`}>
+                                        <ListItemText primary={`${getLocationName(invItem.stockLocation)}: ${invItem.quantity}`} />
+                                    </ListItem>
+                                )) : <ListItem><ListItemText primary="No stock information available." /></ListItem>}
+                            </List>
+                        </Collapse>
+                    </React.Fragment>
+                ))}
+            </List>
+          )}
         </section>
       </Box>
     </Box>

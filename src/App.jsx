@@ -3,8 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
-import Projects from './pages/Projects';
-import ProjectBOM from './pages/ProjectBOM';
+import ProjectPage from './pages/ProjectPage';
+import ProjectDetailsPage from './pages/ProjectDetailsPage';
+import ProductionRunPage from './pages/ProductionRunPage';
 import ComponentCatalogPage from './pages/ComponentCatalogPage';
 import TransactionLogPage from './pages/TransactionLogPage';
 import SignInPage from './pages/SignInPage';
@@ -26,8 +27,9 @@ function App() {
                     <main>
                         <Routes>
                             <Route path="/" element={<HomePage />} />
-                            <Route path="/projects" element={<Projects />} />
-                            <Route path="/project/:projectId" element={<ProjectBOM />} />
+                            <Route path="/projects" element={<ProjectPage />} />
+                            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+                            <Route path="/projects/:projectId/production" element={<ProductionRunPage />} />
                             <Route path="/components" element={<ComponentCatalogPage />} />
                             <Route path="/transactions" element={<TransactionLogPage />} />
                             <Route path="/circulation" element={<Circulation />} />
