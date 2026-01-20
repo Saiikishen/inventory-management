@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -15,19 +15,23 @@ const SignUpPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
+    const [success, setSuccess] = useState('');
     const navigate = useNavigate();
     const auth = getAuth();
 
     const handleSignUp = async (e) => {
         e.preventDefault();
         setError(null);
+        setSuccess('');
+
         if (!email.endsWith('@chargemod.com')) {
             setError('Only @chargemod.com emails are allowed to sign up.');
             return;
         }
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
-            navigate('/');
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await sendEmailVerification(userCredential.user);
+            setSuccess('A verification email has been sent. Please check your inbox to verify your account before signing in.');
         } catch (err) {
             setError(err.message);
         }
@@ -77,6 +81,11 @@ const SignUpPage = () => {
                     {error && (
                         <Typography color="error" variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
                             {error}
+                        </Typography>
+                    )}
+                    {success && (
+                        <Typography color="primary" variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
+                            {success}
                         </Typography>
                     )}
                     <Button

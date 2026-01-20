@@ -199,7 +199,7 @@ const ComponentList = () => {
         return manufacturer.split(',').map((link, index) => {
             const trimmedLink = link.trim();
             let domain = '';
-            try { domain = new URL(trimmedLink).hostname; } catch (e) { domain = trimmedLink; }
+            try { domain = new URL(trimmedLink).hostname; } catch { domain = trimmedLink; }
             return <a key={index} href={trimmedLink} target="_blank" rel="noopener noreferrer">{domain}</a>;
         }).reduce((prev, curr) => [prev, ', ', curr]);
     };

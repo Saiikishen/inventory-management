@@ -22,8 +22,13 @@ const SignInPage = () => {
         e.preventDefault();
         setError(null);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            navigate('/');
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            if (userCredential.user.emailVerified) {
+                navigate('/');
+            } else {
+                await auth.signOut();
+                setError('Please verify your email before signing in. A verification email has been sent to your inbox.');
+            }
         } catch (err) {
             setError(err.message);
         }
