@@ -21,6 +21,10 @@ const SignUpPage = () => {
     const handleSignUp = async (e) => {
         e.preventDefault();
         setError(null);
+        if (!email.endsWith('@chargemod.com')) {
+            setError('Only @chargemod.com emails are allowed to sign up.');
+            return;
+        }
         try {
             await createUserWithEmailAndPassword(auth, email, password);
             navigate('/');

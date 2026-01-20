@@ -3,7 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { db, createProject } from '../firebase';
 import { FaTrash, FaPlay } from 'react-icons/fa';
+import Modal from 'react-modal';
 import './ProjectPage.css';
+
+Modal.setAppElement('#root');
 
 const ProjectPage = () => {
     const [projects, setProjects] = useState([]);
@@ -11,6 +14,8 @@ const ProjectPage = () => {
     const [hoveredProjectId, setHoveredProjectId] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
     const navigate = useNavigate();
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [projectToDelete, setProjectToDelete] = useState(null);
 
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
@@ -35,12 +40,26 @@ const ProjectPage = () => {
         }
     };
 
-    const handleDeleteProject = async (projectId) => {
-        try {
-            await deleteDoc(doc(db, 'projects', projectId));
-            setSnackbar({ open: true, message: 'Project deleted successfully!', type: 'success' });
-        } catch (error) {
-            setSnackbar({ open: true, message: `Error deleting project: ${error.message}`, type: 'error' });
+    const openDeleteModal = (projectId) => {
+        setProjectToDelete(projectId);
+        setIsDeleteModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        setProjectToDelete(null);
+        setIsDeleteModalOpen(false);
+    };
+
+    const confirmDeleteProject = async () => {
+        if (projectToDelete) {
+            try {
+                await deleteDoc(doc(db, 'projects', projectToDelete));
+                setSnackbar({ open: true, message: 'Project deleted successfully!', type: 'success' });
+            } catch (error) {
+                setSnackbar({ open: true, message: `Error deleting project: ${error.message}`, type: 'error' });
+            } finally {
+                closeDeleteModal();
+            }
         }
     };
 
@@ -77,12 +96,27 @@ const ProjectPage = () => {
                         {hoveredProjectId === project.id && (
                             <div className="project-actions">
                                 <button className="icon-button production-run-button" onClick={() => handleProductionRun(project.id)}><FaPlay /> </button>
-                                <button className="icon-button delete-button" onClick={() => handleDeleteProject(project.id)}><FaTrash /></button>
+                                <button className="icon-button delete-button" onClick={() => openDeleteModal(project.id)}><FaTrash /></button>
                             </div>
                         )}
                     </div>
                 ))}
             </div>
+
+            <Modal 
+                isOpen={isDeleteModalOpen} 
+                onRequestClose={closeDeleteModal} 
+                contentLabel="Confirm Deletion" 
+                className="modal"
+                overlayClassName="overlay"
+            >
+                <h2>Confirm Deletion</h2>
+                <p>Are you sure you want to delete this project? This action cannot be undone.</p>
+                <div className="modal-actions">
+                    <button onClick={confirmDeleteProject} className="run-button">Delete</button>
+                    <button onClick={closeDeleteModal} className="cancel-button">Cancel</button>
+                </div>
+            </Modal>
 
             {snackbar.open && (
                 <div className={`snackbar ${snackbar.type}`}>
