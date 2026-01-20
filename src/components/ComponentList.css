@@ -1,17 +1,22 @@
+
 .component-list-container {
     padding: 2rem;
     background-color: #f9f9f9;
     min-height: 100vh;
 }
 
-.component-list-container h1 {
+.component-list-container h1, .component-list-container h2 {
     text-align: center;
     margin-bottom: 2rem;
     font-size: 2.5rem;
     color: #333;
 }
 
-.add-component-form {
+.component-list-container h2 {
+    font-size: 2rem;
+}
+
+.add-component-form, .location-management-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
@@ -22,14 +27,14 @@
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-.add-component-form input {
+.add-component-form input, .add-component-form select, .add-location-form input {
     padding: 0.75rem;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 1rem;
 }
 
-.add-component-form button {
+.add-component-form button, .add-location-form button {
     grid-column: 1 / -1;
     padding: 0.75rem;
     border: none;
@@ -41,8 +46,41 @@
     transition: background-color 0.3s ease;
 }
 
-.add-component-form button:hover {
+.add-component-form button:hover, .add-location-form button:hover {
     background-color: #e07b00;
+}
+
+.location-list {
+    grid-column: 1 / -1;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.location-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid #eee;
+}
+
+.location-list li:last-child {
+    border-bottom: none;
+}
+
+.location-list button {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    background-color: #f44336;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.location-list button:hover {
+    background-color: #e53935;
 }
 
 .component-table {
@@ -70,18 +108,38 @@
     border-bottom: none;
 }
 
-.component-table .delete-button {
+.component-table .action-button {
     padding: 0.5rem 1rem;
     border: none;
-    background-color: #f44336;
     color: white;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    margin-right: 5px; /* Add some space between buttons */
+}
+
+.component-table .edit-button {
+    background-color: #FF8C00; /* Orange */
+}
+
+.component-table .edit-button:hover {
+    background-color: #e07b00;
+}
+
+.component-table .delete-button {
+    background-color: #f44336; /* Red */
 }
 
 .component-table .delete-button:hover {
     background-color: #e53935;
+}
+
+.component-table .cancel-button {
+    background-color: #808080; /* Grey */
+}
+
+.component-table .cancel-button:hover {
+    background-color: #696969;
 }
 
 .snackbar {

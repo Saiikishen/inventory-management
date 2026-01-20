@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, Paper } from '@mui/material';
-import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, TextField, Button, Paper, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
+import { doc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Circulation.css';
 
@@ -8,15 +8,28 @@ const Circulation = () => {
   const [componentId, setComponentId] = useState('');
   const [component, setComponent] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [stockLocations, setStockLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    const unsubscribeLocations = onSnapshot(collection(db, 'stock_locations'), (snapshot) => {
+        const locationsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        setStockLocations(locationsData);
+    });
+
+    return () => unsubscribeLocations();
+  }, []);
 
   const handleSearch = async () => {
     if (!componentId) return;
     const docRef = doc(db, 'components', componentId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      setComponent({ id: docSnap.id, ...docSnap.data() });
+      const componentData = { id: docSnap.id, ...docSnap.data() };
+      setComponent(componentData);
+      setSelectedLocation(componentData.stockLocation || '');
       setError('');
       setSuccess('');
     } else {
@@ -32,6 +45,11 @@ const Circulation = () => {
         setSuccess('');
         return;
     }
+    if (!selectedLocation) {
+        setError('Please select a stock location.');
+        setSuccess('');
+        return;
+    }
 
     const newQuantity = operation === 'use' 
       ? component.quantity - quantity 
@@ -44,13 +62,14 @@ const Circulation = () => {
     }
 
     const docRef = doc(db, 'components', component.id);
-    await updateDoc(docRef, { quantity: newQuantity });
-    setComponent({ ...component, quantity: newQuantity });
+    await updateDoc(docRef, { quantity: newQuantity, stockLocation: selectedLocation });
+    setComponent({ ...component, quantity: newQuantity, stockLocation: selectedLocation });
     setSuccess(`Successfully ${operation === 'use' ? 'used' : 'returned'} ${quantity} component(s).`);
     setError('');
 
     // Log the transaction
-    const transactionDetails = `Component: ${component.name} (ID: ${component.id}), Quantity: ${quantity}`;
+    const locationName = stockLocations.find(loc => loc.id === selectedLocation)?.name || 'N/A';
+    const transactionDetails = `Component: ${component.name} (ID: ${component.id}), Quantity: ${quantity}, Location: ${locationName}`;
     await addDoc(collection(db, "transactions"), {
         type: `Circulation - ${operation === 'use' ? 'Use' : 'Return'}`,
         details: [transactionDetails],
@@ -84,6 +103,18 @@ const Circulation = () => {
               <Typography>ID: {component.id}</Typography>
               <Typography>Available: {component.quantity}</Typography>
             </Box>
+            <FormControl fullWidth className="circulation-input">
+                <InputLabel>Stock Location</InputLabel>
+                <Select
+                    value={selectedLocation}
+                    label="Stock Location"
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                >
+                    {stockLocations.map(location => (
+                        <MenuItem key={location.id} value={location.id}>{location.name}</MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
             <Box className="circulation-actions">
               <TextField
                 label="Quantity"
