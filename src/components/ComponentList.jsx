@@ -1,41 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, deleteDoc, addDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import Modal from 'react-modal';
 import './ComponentList.css';
 
+Modal.setAppElement('#root');
+
 const ComponentList = () => {
-    const [inventory, setInventory] = useState([]);
-    const [components, setComponents] = useState({});
-    const [newComponent, setNewComponent] = useState({ 
-        name: '', 
-        category: '', 
-        value: '', 
-        footprint: '', 
-        toleranceRating: '', 
-        manufacturer: '',
-        quantity: '',
-        stockLocation: '',
-        pricing: ''
+    const [components, setComponents] = useState([]);
+    const [newComponent, setNewComponent] = useState({
+        name: '', category: '', value: '', footprint: '',
+        toleranceRating: '', manufacturer: '', pricing: '',
+        initialStock: '', stockLocationId: ''
     });
     const [stockLocations, setStockLocations] = useState([]);
     const [showNewLocationInput, setShowNewLocationInput] = useState(false);
     const [showRemoveLocationUI, setShowRemoveLocationUI] = useState(false);
     const [newLocationName, setNewLocationName] = useState('');
-    const [editingInventoryId, setEditingInventoryId] = useState(null);
-    const [editedInventoryData, setEditedInventoryData] = useState({ quantity: '', pricing: '', manufacturer: '' });
+    const [editingComponentId, setEditingComponentId] = useState(null);
+    const [editedComponentData, setEditedComponentData] = useState({ locations: [], pricing: '', manufacturer: '' });
+
+    // State for the new "Add Stock" modal
+    const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
+    const [selectedComponent, setSelectedComponent] = useState(null);
+    const [addStockData, setAddStockData] = useState({ locationId: '', quantity: 0 });
+
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
 
     useEffect(() => {
-        const unsubscribeInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => {
-            const inventoryData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-            setInventory(inventoryData);
-        });
-
         const unsubscribeComponents = onSnapshot(collection(db, 'components'), (snapshot) => {
-            const componentsData = snapshot.docs.reduce((acc, doc) => {
-                acc[doc.id] = doc.data();
-                return acc;
-            }, {});
+            const componentsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             setComponents(componentsData);
         });
 
@@ -45,7 +39,6 @@ const ComponentList = () => {
         });
 
         return () => {
-            unsubscribeInventory();
             unsubscribeComponents();
             unsubscribeLocations();
         };
@@ -53,10 +46,10 @@ const ComponentList = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'stockLocation' && value === 'add-new') {
+        if (name === 'stockLocationId' && value === 'add-new') {
             setShowNewLocationInput(true);
             setShowRemoveLocationUI(false);
-        } else if (name === 'stockLocation' && value === 'remove-location') {
+        } else if (name === 'stockLocationId' && value === 'remove-location') {
             setShowRemoveLocationUI(true);
             setShowNewLocationInput(false);
         } else if (name === 'category') {
@@ -65,16 +58,15 @@ const ComponentList = () => {
             setNewComponent(prev => ({ ...prev, [name]: value }));
         }
     };
-    
+
     const handleSaveNewLocation = async () => {
         if (!newLocationName) {
             setSnackbar({ open: true, message: 'Location name cannot be empty.', type: 'error' });
             return;
         }
-
         try {
             const docRef = await addDoc(collection(db, 'stock_locations'), { name: newLocationName });
-            setNewComponent(prev => ({ ...prev, stockLocation: docRef.id }));
+            setNewComponent(prev => ({ ...prev, stockLocationId: docRef.id }));
             setShowNewLocationInput(false);
             setNewLocationName('');
             setSnackbar({ open: true, message: 'Location added successfully!', type: 'success' });
@@ -84,12 +76,6 @@ const ComponentList = () => {
     };
 
     const handleDeleteLocation = async (id) => {
-        const isLocationInUse = inventory.some(item => item.stockLocation === id);
-        if (isLocationInUse) {
-            setSnackbar({ open: true, message: 'Cannot delete location as it is currently in use.', type: 'error' });
-            return;
-        }
-
         try {
             await deleteDoc(doc(db, 'stock_locations', id));
             setSnackbar({ open: true, message: 'Location deleted successfully!', type: 'success' });
@@ -99,93 +85,121 @@ const ComponentList = () => {
     };
 
     const handleAddComponent = async () => {
-        const { name, category, value, footprint, toleranceRating, manufacturer, quantity, stockLocation, pricing } = newComponent;
-        if (!name || !category || !stockLocation) {
+        const { name, category, value, footprint, toleranceRating, manufacturer, pricing, initialStock, stockLocationId } = newComponent;
+        if (!name || !category || !stockLocationId) {
             setSnackbar({ open: true, message: 'Category, Name, and Stock Location are required.', type: 'error' });
             return;
         }
-
-        const componentId = [category, name, value, footprint, toleranceRating].join('-').toUpperCase();
-        const initialQuantity = parseInt(quantity, 10) || 0;
-
+        const componentId = [category, name, value, footprint, toleranceRating].filter(Boolean).join('-').toUpperCase();
+        const stock = parseInt(initialStock, 10) || 0;
         try {
-            const batch = writeBatch(db);
             const componentRef = doc(db, 'components', componentId);
-            batch.set(componentRef, { name, category, value, footprint, toleranceRating, manufacturer, pricing, createdAt: new Date() });
-
-            const inventoryRef = doc(collection(db, 'inventory'));
-            batch.set(inventoryRef, { componentId, stockLocation, quantity: initialQuantity });
-
-            await batch.commit();
-
-            setNewComponent({ name: '', category: '', value: '', footprint: '', toleranceRating: '', manufacturer: '', quantity: '', stockLocation: '', pricing: '' });
-            setSnackbar({ open: true, message: 'Component and inventory added successfully!', type: 'success' });
+            const location = stockLocations.find(loc => loc.id === stockLocationId);
+            const newComponentData = {
+                name, category, value, footprint, toleranceRating, manufacturer, pricing,
+                createdAt: new Date(),
+                locations: [{ id: stockLocationId, name: location.name, stock: stock }]
+            };
+            await setDoc(componentRef, newComponentData);
+            setNewComponent({ name: '', category: '', value: '', footprint: '', toleranceRating: '', manufacturer: '', pricing: '', initialStock: '', stockLocationId: '' });
+            setSnackbar({ open: true, message: 'Component added successfully!', type: 'success' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error adding component: ${error.message}`, type: 'error' });
         }
     };
 
-    const handleDeleteInventory = async (id) => {
+    const handleDeleteComponent = async (id) => {
         try {
-            await deleteDoc(doc(db, 'inventory', id));
-            setSnackbar({ open: true, message: 'Inventory entry deleted successfully!', type: 'success' });
+            await deleteDoc(doc(db, 'components', id));
+            setSnackbar({ open: true, message: 'Component deleted successfully!', type: 'success' });
         } catch (error) {
-            setSnackbar({ open: true, message: `Error deleting inventory: ${error.message}`, type: 'error' });
+            setSnackbar({ open: true, message: `Error deleting component: ${error.message}`, type: 'error' });
         }
     };
 
-    const handleEditClick = (item) => {
-        setEditingInventoryId(item.id);
-        setEditedInventoryData({ 
-            quantity: item.quantity || 0,
-            pricing: components[item.componentId]?.pricing || '', 
-            manufacturer: components[item.componentId]?.manufacturer || ''
+    const handleEditClick = (component) => {
+        setEditingComponentId(component.id);
+        setEditedComponentData({
+            locations: component.locations || [],
+            pricing: component.pricing || '',
+            manufacturer: component.manufacturer || ''
         });
     };
 
-    const handleCancelEdit = () => {
-        setEditingInventoryId(null);
-        setEditedInventoryData({ quantity: '', pricing: '', manufacturer: '' });
-    };
+    const handleCancelEdit = () => setEditingComponentId(null);
 
-    const handleUpdateInventory = async () => {
-        if (!editingInventoryId) return;
-        const item = inventory.find(i => i.id === editingInventoryId);
-
+    const handleUpdateComponent = async () => {
+        if (!editingComponentId) return;
         try {
-            const batch = writeBatch(db);
-            const inventoryRef = doc(db, 'inventory', editingInventoryId);
-            batch.update(inventoryRef, { quantity: parseInt(editedInventoryData.quantity, 10) || 0 });
-
-            const componentRef = doc(db, 'components', item.componentId);
-            batch.update(componentRef, { 
-                pricing: editedInventoryData.pricing, 
-                manufacturer: editedInventoryData.manufacturer 
+            const componentRef = doc(db, 'components', editingComponentId);
+            const sanitizedLocations = editedComponentData.locations.map(loc => ({
+                ...loc,
+                stock: Number(loc.stock) || 0
+            }));
+            await updateDoc(componentRef, {
+                locations: sanitizedLocations,
+                pricing: editedComponentData.pricing,
+                manufacturer: editedComponentData.manufacturer
             });
-
-            await batch.commit();
-
-            setSnackbar({ open: true, message: 'Inventory updated successfully!', type: 'success' });
+            setSnackbar({ open: true, message: 'Component updated successfully!', type: 'success' });
             handleCancelEdit();
         } catch (error) {
-            setSnackbar({ open: true, message: `Error updating inventory: ${error.message}`, type: 'error' });
+            setSnackbar({ open: true, message: `Error updating component: ${error.message}`, type: 'error' });
         }
     };
 
-    const handleCloseSnackbar = () => {
-        setSnackbar({ open: false, message: '', type: snackbar.type });
+    // --- Functions for the new "Add Stock" feature ---
+    const openAddStockModal = (component) => {
+        setSelectedComponent(component);
+        setIsAddStockModalOpen(true);
     };
+
+    const closeAddStockModal = () => {
+        setIsAddStockModalOpen(false);
+        setSelectedComponent(null);
+        setAddStockData({ locationId: '', quantity: 0 });
+    };
+
+    const handleAddStock = async () => {
+        const { locationId, quantity } = addStockData;
+        const stockToAdd = parseInt(quantity, 10) || 0;
+
+        if (!locationId || !selectedComponent || stockToAdd <= 0) {
+            setSnackbar({ open: true, message: 'Please select a location and enter a valid quantity.', type: 'error' });
+            return;
+        }
+
+        const componentRef = doc(db, 'components', selectedComponent.id);
+        const currentLocations = selectedComponent.locations || [];
+        const locationExists = currentLocations.some(loc => loc.id === locationId);
+        let newLocations;
+
+        if (locationExists) {
+            newLocations = currentLocations.map(loc =>
+                loc.id === locationId ? { ...loc, stock: (loc.stock || 0) + stockToAdd } : loc
+            );
+        } else {
+            const location = stockLocations.find(loc => loc.id === locationId);
+            newLocations = [...currentLocations, { id: locationId, name: location.name, stock: stockToAdd }];
+        }
+
+        try {
+            await updateDoc(componentRef, { locations: newLocations });
+            setSnackbar({ open: true, message: 'Stock added successfully!', type: 'success' });
+            closeAddStockModal();
+        } catch (error) {
+            setSnackbar({ open: true, message: `Error adding stock: ${error.message}`, type: 'error' });
+        }
+    };
+
+    const handleCloseSnackbar = () => setSnackbar({ open: false, message: '', type: snackbar.type });
 
     const renderManufacturerLinks = (manufacturer) => {
         if (!manufacturer) return null;
         return manufacturer.split(',').map((link, index) => {
             const trimmedLink = link.trim();
             let domain = '';
-            try {
-                domain = new URL(trimmedLink).hostname;
-            } catch (e) {
-                domain = trimmedLink;
-            }
+            try { domain = new URL(trimmedLink).hostname; } catch (e) { domain = trimmedLink; }
             return <a key={index} href={trimmedLink} target="_blank" rel="noopener noreferrer">{domain}</a>;
         }).reduce((prev, curr) => [prev, ', ', curr]);
     };
@@ -199,10 +213,10 @@ const ComponentList = () => {
                 <input type="text" name="value" value={newComponent.value} onChange={handleInputChange} placeholder="Value" />
                 <input type="text" name="footprint" value={newComponent.footprint} onChange={handleInputChange} placeholder="Footprint" />
                 <input type="text" name="toleranceRating" value={newComponent.toleranceRating} onChange={handleInputChange} placeholder="Tolerance" />
-                <input type="text" name="manufacturer" value={newComponent.manufacturer} onChange={handleInputChange} placeholder="Manufacturer" />
-                <input type="number" name="quantity" value={newComponent.quantity} onChange={handleInputChange} placeholder="Initial Quantity" />
+                <input type="text" name="manufacturer" value={newComponent.manufacturer} onChange={handleInputChange} placeholder="Manufacturer Links" />
                 <input type="number" name="pricing" value={newComponent.pricing} onChange={handleInputChange} placeholder="Pricing" />
-                <select name="stockLocation" value={newComponent.stockLocation} onChange={handleInputChange}>
+                <input type="number" name="initialStock" value={newComponent.initialStock} onChange={handleInputChange} placeholder="Initial Stock" />
+                <select name="stockLocationId" value={newComponent.stockLocationId} onChange={handleInputChange}>
                     <option value="">Select Location *</option>
                     {stockLocations.map(location => (
                         <option key={location.id} value={location.id}>{location.name}</option>
@@ -221,10 +235,7 @@ const ComponentList = () => {
                         <h3>Remove a Stock Location</h3>
                         <ul>
                             {stockLocations.map(location => (
-                                <li key={location.id}>
-                                    {location.name}
-                                    <button onClick={() => handleDeleteLocation(location.id)}>Delete</button>
-                                </li>
+                                <li key={location.id}>{location.name}<button onClick={() => handleDeleteLocation(location.id)}>Delete</button></li>
                             ))}
                         </ul>
                     </div>
@@ -236,61 +247,81 @@ const ComponentList = () => {
                 <thead>
                     <tr>
                         <th>Component ID</th>
-                        <th>Stock Location</th>
-                        <th>Quantity</th>
+                        <th>Locations (Stock)</th>
                         <th>Pricing</th>
                         <th>Manufacturer</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {inventory.map((item) => (
-                        <tr key={item.id}>
-                            <td>{item.componentId}</td>
-                            <td>{stockLocations.find(loc => loc.id === item.stockLocation)?.name}</td>
-                            {editingInventoryId === item.id ? (
-                                <>
-                                    <td>
-                                        <input
-                                            type="number"
-                                            value={editedInventoryData.quantity}
-                                            onChange={(e) => setEditedInventoryData({ ...editedInventoryData, quantity: e.target.value })}
-                                        />
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="number"
-                                            value={editedInventoryData.pricing}
-                                            onChange={(e) => setEditedInventoryData({ ...editedInventoryData, pricing: e.target.value })}
-                                        />
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="text"
-                                            value={editedInventoryData.manufacturer}
-                                            onChange={(e) => setEditedInventoryData({ ...editedInventoryData, manufacturer: e.target.value })}
-                                        />
-                                    </td>
-                                    <td>
-                                        <button className="action-button edit-button" onClick={handleUpdateInventory}>Save</button>
+                    {components.map((component) => (
+                        <tr key={component.id}>
+                            <td>{component.id}</td>
+                            <td>
+                                {editingComponentId === component.id ? (
+                                    editedComponentData.locations.map((loc, index) => (
+                                        <div key={index} className="location-edit">
+                                            <span>{loc.name}: </span>
+                                            <input type="number" value={loc.stock} onChange={(e) => {
+                                                const newLocations = [...editedComponentData.locations];
+                                                const parsedValue = parseInt(e.target.value, 10);
+                                                newLocations[index].stock = isNaN(parsedValue) ? '' : parsedValue;
+                                                setEditedComponentData({...editedComponentData, locations: newLocations});
+                                            }}/>
+                                        </div>
+                                    ))
+                                ) : (
+                                    (component.locations || []).map(loc => `${loc.name}: ${loc.stock}`).join(', ')
+                                )}
+                            </td>
+                            <td>
+                                {editingComponentId === component.id ?
+                                 <input type="text" value={editedComponentData.pricing} onChange={(e) => setEditedComponentData({...editedComponentData, pricing: e.target.value})}/> :
+                                 component.pricing}
+                            </td>
+                            <td>
+                                {editingComponentId === component.id ?
+                                 <input type="text" value={editedComponentData.manufacturer} onChange={(e) => setEditedComponentData({...editedComponentData, manufacturer: e.target.value})}/> :
+                                 renderManufacturerLinks(component.manufacturer)}
+                            </td>
+                            <td>
+                                {editingComponentId === component.id ? (
+                                    <>
+                                        <button className="action-button save-button" onClick={handleUpdateComponent}>Save</button>
                                         <button className="action-button cancel-button" onClick={handleCancelEdit}>Cancel</button>
-                                    </td>
-                                </> 
-                            ) : (
-                                <>
-                                    <td>{item.quantity || 0}</td>
-                                    <td>{components[item.componentId]?.pricing}</td>
-                                    <td>{renderManufacturerLinks(components[item.componentId]?.manufacturer)}</td>
-                                    <td>
-                                        <button className="action-button edit-button" onClick={() => handleEditClick(item)}>Edit</button>
-                                        <button className="action-button delete-button" onClick={() => handleDeleteInventory(item.id)}>Delete</button>
-                                    </td>
-                                </>
-                            )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <button className="action-button add-stock-button" onClick={() => openAddStockModal(component)}>Add Stock</button>
+                                        <button className="action-button edit-button" onClick={() => handleEditClick(component)}>Edit</button>
+                                        <button className="action-button delete-button" onClick={() => handleDeleteComponent(component.id)}>Delete</button>
+                                    </>
+                                )}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
+
+            {/* Add Stock Modal */}
+            <Modal isOpen={isAddStockModalOpen} onRequestClose={closeAddStockModal} contentLabel="Add Stock" className="modal" overlayClassName="overlay">
+                <h2>Add Stock for {selectedComponent?.id}</h2>
+                <div className="form-group">
+                    <label htmlFor="stock-location">Location</label>
+                    <select id="stock-location" value={addStockData.locationId} onChange={(e) => setAddStockData({...addStockData, locationId: e.target.value})}>
+                        <option value="">Select a location</option>
+                        {stockLocations.map(loc => (
+                            <option key={loc.id} value={loc.id}>{loc.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="stock-quantity">Quantity</label>
+                    <input id="stock-quantity" type="number" value={addStockData.quantity} onChange={(e) => setAddStockData({...addStockData, quantity: e.target.value})} min="1"/>
+                </div>
+                <button onClick={handleAddStock} className="run-button">Add Stock</button>
+                <button onClick={closeAddStockModal} className="cancel-button">Cancel</button>
+            </Modal>
 
             {snackbar.open && (
                 <div className={`snackbar ${snackbar.type}`}>

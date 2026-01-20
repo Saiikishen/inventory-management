@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import './ProjectDetailsPage.css';
 
@@ -16,8 +16,7 @@ const ProjectDetailsPage = () => {
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
 
     useEffect(() => {
-        const projectRef = doc(db, 'projects', projectId);
-        const unsubscribeProject = onSnapshot(projectRef, (docSnap) => {
+        const unsubscribeProject = onSnapshot(doc(db, 'projects', projectId), (docSnap) => {
             if (docSnap.exists()) {
                 const projectData = { ...docSnap.data(), id: docSnap.id };
                 setProject(projectData);
@@ -51,10 +50,13 @@ const ProjectDetailsPage = () => {
             return;
         }
 
-        const newBom = [...bom, { componentId: selectedComponent, locationId: selectedLocation, quantity: 1 }];
+        const newBom = [
+            ...bom,
+            { componentId: selectedComponent, locationId: selectedLocation, quantity: 1 }
+        ];
+
         try {
-            const projectRef = doc(db, 'projects', projectId);
-            await updateDoc(projectRef, { bom: newBom });
+            await updateDoc(doc(db, 'projects', projectId), { bom: newBom });
             setSnackbar({ open: true, message: 'Component added to BOM!', type: 'success' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error adding to BOM: ${error.message}`, type: 'error' });
@@ -64,9 +66,9 @@ const ProjectDetailsPage = () => {
     const handleDeleteBomItem = async (index) => {
         const newBom = [...bom];
         newBom.splice(index, 1);
+
         try {
-            const projectRef = doc(db, 'projects', projectId);
-            await updateDoc(projectRef, { bom: newBom });
+            await updateDoc(doc(db, 'projects', projectId), { bom: newBom });
             setSnackbar({ open: true, message: 'Component removed from BOM.', type: 'success' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error removing from BOM: ${error.message}`, type: 'error' });
@@ -85,9 +87,9 @@ const ProjectDetailsPage = () => {
         const { index, quantity } = editingBomItem;
         const newBom = [...bom];
         newBom[index].quantity = parseInt(quantity, 10) || 0;
+
         try {
-            const projectRef = doc(db, 'projects', projectId);
-            await updateDoc(projectRef, { bom: newBom });
+            await updateDoc(doc(db, 'projects', projectId), { bom: newBom });
             setSnackbar({ open: true, message: 'Quantity updated!', type: 'success' });
             handleCancelEdit();
         } catch (error) {
@@ -95,35 +97,46 @@ const ProjectDetailsPage = () => {
         }
     };
 
-    const handleCloseSnackbar = () => {
-        setSnackbar({ open: false, message: '', type: snackbar.type });
-    };
-
     return (
         <div className="project-details-page-container">
             {project ? (
                 <>
                     <h1>{project.name} - Bill of Materials</h1>
+
+                    {/* ADD TO BOM FORM */}
                     <div className="add-to-bom-form">
-                        <select onChange={(e) => setSelectedComponent(e.target.value)} value={selectedComponent}>
+                        <select
+                            value={selectedComponent}
+                            onChange={(e) => setSelectedComponent(e.target.value)}
+                        >
                             <option value="">Select Component</option>
-                            {Object.keys(components).map(componentId => (
-                                <option key={componentId} value={componentId}>{components[componentId].name}</option>
+                            {Object.entries(components).map(([componentId, component]) => (
+                                <option key={componentId} value={componentId}>
+                                    {component.name} (ID: {componentId})
+                                </option>
                             ))}
                         </select>
-                        <select onChange={(e) => setSelectedLocation(e.target.value)} value={selectedLocation}>
+
+                        <select
+                            value={selectedLocation}
+                            onChange={(e) => setSelectedLocation(e.target.value)}
+                        >
                             <option value="">Select Location</option>
                             {stockLocations.map(location => (
-                                <option key={location.id} value={location.id}>{location.name}</option>
+                                <option key={location.id} value={location.id}>
+                                    {location.name}
+                                </option>
                             ))}
                         </select>
+
                         <button onClick={handleAddComponentToBom}>Add to BOM</button>
                     </div>
 
+                    {/* BOM TABLE */}
                     <table className="bom-table">
                         <thead>
                             <tr>
-                                <th>Component</th>
+                                <th>Component ID</th>
                                 <th>Location</th>
                                 <th>Quantity</th>
                                 <th>Actions</th>
@@ -132,29 +145,54 @@ const ProjectDetailsPage = () => {
                         <tbody>
                             {bom.map((item, index) => (
                                 <tr key={index}>
-                                    <td>{components[item.componentId]?.name}</td>
-                                    <td>{stockLocations.find(loc => loc.id === item.locationId)?.name}</td>
+                                    {/* COMPONENT ID INSTEAD OF NAME */}
+                                    <td>{item.componentId}</td>
+
+                                    <td>
+                                        {stockLocations.find(loc => loc.id === item.locationId)?.name}
+                                    </td>
+
                                     {editingBomItem.index === index ? (
                                         <td>
-                                            <input 
-                                                type="number" 
-                                                value={editingBomItem.quantity} 
-                                                onChange={(e) => setEditingBomItem({ ...editingBomItem, quantity: e.target.value })}
+                                            <input
+                                                type="number"
+                                                value={editingBomItem.quantity}
+                                                onChange={(e) =>
+                                                    setEditingBomItem({
+                                                        ...editingBomItem,
+                                                        quantity: e.target.value
+                                                    })
+                                                }
                                             />
                                         </td>
                                     ) : (
                                         <td>{item.quantity}</td>
                                     )}
+
                                     <td>
                                         {editingBomItem.index === index ? (
                                             <>
-                                                <button className="action-button save-button" onClick={handleUpdateQuantity}>Save</button>
-                                                <button className="action-button cancel-button" onClick={handleCancelEdit}>Cancel</button>
+                                                <button className="action-button save-button" onClick={handleUpdateQuantity}>
+                                                    Save
+                                                </button>
+                                                <button className="action-button cancel-button" onClick={handleCancelEdit}>
+                                                    Cancel
+                                                </button>
                                             </>
                                         ) : (
                                             <>
-                                                <button className="action-button edit-button" onClick={() => handleEditClick(index, item.quantity)}>Edit</button>
-                                                <button className="action-button delete-button" onClick={() => handleDeleteBomItem(index)}>Delete</button>
+                                                <button
+                                                    className="action-button edit-button"
+                                                    onClick={() => handleEditClick(index, item.quantity)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="action-button delete-button"
+                                                    onClick={() => handleDeleteBomItem(index)}
+                                                >
+                                                    Delete
+                                                </button>
                                             </>
                                         )}
                                     </td>
@@ -170,7 +208,7 @@ const ProjectDetailsPage = () => {
             {snackbar.open && (
                 <div className={`snackbar ${snackbar.type}`}>
                     {snackbar.message}
-                    <button onClick={handleCloseSnackbar}>X</button>
+                    <button onClick={() => setSnackbar({ ...snackbar, open: false })}>X</button>
                 </div>
             )}
         </div>
