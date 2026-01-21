@@ -43,11 +43,21 @@ const HomePage = () => {
     const componentSnap = await getDoc(componentRef);
 
     if (componentSnap.exists()) {
-      setSearchResult({ id: componentSnap.id, ...componentSnap.data() });
-      const q = query(collection(db, 'inventory'), where('componentId', '==', searchQuery));
-      const querySnapshot = await getDocs(q);
-      const inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
-      setSearchInventory(inventoryData);
+      const componentData = { id: componentSnap.id, ...componentSnap.data() };
+      setSearchResult(componentData);
+      if (componentData.locations && Array.isArray(componentData.locations)) {
+        const inventoryData = componentData.locations.map(loc => ({
+          id: loc.id, // Assuming loc.id is the stockLocation id
+          stockLocation: loc.id,
+          quantity: loc.stock
+        }));
+        setSearchInventory(inventoryData);
+      } else {
+        const q = query(collection(db, 'inventory'), where('componentId', '==', searchQuery));
+        const querySnapshot = await getDocs(q);
+        const inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
+        setSearchInventory(inventoryData);
+      }
       setSearchError('');
     } else {
         setSearchError('Component not found.');
@@ -71,9 +81,17 @@ const HomePage = () => {
 
     const componentsWithInventory = await Promise.all(
         componentsData.map(async (comp) => {
-            const inventoryQuery = query(collection(db, 'inventory'), where('componentId', '==', comp.id));
-            const inventorySnapshot = await getDocs(inventoryQuery);
-            const inventoryData = inventorySnapshot.docs.map(doc => doc.data());
+            let inventoryData = [];
+            if (comp.locations && Array.isArray(comp.locations)) {
+              inventoryData = comp.locations.map(loc => ({
+                stockLocation: loc.id,
+                quantity: loc.stock
+              }));
+            } else {
+              const inventoryQuery = query(collection(db, 'inventory'), where('componentId', '==', comp.id));
+              const inventorySnapshot = await getDocs(inventoryQuery);
+              inventoryData = inventorySnapshot.docs.map(doc => doc.data());
+            }
             const totalQuantity = inventoryData.reduce((sum, item) => sum + item.quantity, 0);
             return { ...comp, inventory: inventoryData, totalQuantity };
         })

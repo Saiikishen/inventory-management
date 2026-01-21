@@ -9,6 +9,7 @@ const Circulation = () => {
   const [component, setComponent] = useState(null);
   const [inventory, setInventory] = useState([]);
   const [quantity, setQuantity] = useState(1);
+  const [description, setDescription] = useState('');
   const [stockLocations, setStockLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('');
   const [error, setError] = useState('');
@@ -29,10 +30,20 @@ const Circulation = () => {
     const componentSnap = await getDoc(componentRef);
 
     if (componentSnap.exists()) {
-      setComponent({ id: componentSnap.id, ...componentSnap.data() });
-      const q = query(collection(db, 'inventory'), where('componentId', '==', componentId));
-      const querySnapshot = await getDocs(q);
-      const inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
+      const componentData = { id: componentSnap.id, ...componentSnap.data() };
+      setComponent(componentData);
+      let inventoryData = [];
+      if (componentData.locations && Array.isArray(componentData.locations)) {
+        inventoryData = componentData.locations.map(loc => ({
+          id: loc.id, // Assuming loc.id is the stockLocation id
+          stockLocation: loc.id,
+          quantity: loc.stock
+        }));
+      } else {
+        const q = query(collection(db, 'inventory'), where('componentId', '==', componentId));
+        const querySnapshot = await getDocs(q);
+        inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
+      }
       setInventory(inventoryData);
       setError('');
       setSuccess('');
@@ -73,17 +84,27 @@ const Circulation = () => {
       return;
     }
 
-    const inventoryRef = doc(db, 'inventory', inventoryItem.id);
-    await updateDoc(inventoryRef, { quantity: newQuantity });
+    // If the data is in the inventory collection, update it there.
+    // Otherwise, we need to update the embedded locations array in the component document.
+    if (inventoryItem.id && !component.locations) { // Heuristic to check if it's from inventory collection
+        const inventoryRef = doc(db, 'inventory', inventoryItem.id);
+        await updateDoc(inventoryRef, { quantity: newQuantity });
+    } else {
+        const newLocations = component.locations.map(loc => 
+            loc.id === selectedLocation ? { ...loc, stock: newQuantity } : loc
+        );
+        const componentRef = doc(db, 'components', component.id);
+        await updateDoc(componentRef, { locations: newLocations });
+    }
 
-    const updatedInventory = inventory.map(item => item.id === inventoryItem.id ? {...item, quantity: newQuantity} : item)
+    const updatedInventory = inventory.map(item => item.stockLocation === selectedLocation ? {...item, quantity: newQuantity} : item)
     setInventory(updatedInventory);
     setSuccess(`Successfully ${operation === 'use' ? 'used' : 'returned'} ${quantity} component(s).`);
     setError('');
 
     // Log the transaction
     const locationName = stockLocations.find(loc => loc.id === selectedLocation)?.name || 'N/A';
-    const transactionDetails = `Component: ${component.name} (ID: ${component.id}), Quantity: ${quantity}, Location: ${locationName}`;
+    const transactionDetails = `Component: ${component.name} (ID: ${component.id}), Quantity: ${quantity}, Location: ${locationName}, Description: ${description}`;
     await addDoc(collection(db, "transactions"), {
         type: `Circulation - ${operation === 'use' ? 'Use' : 'Return'}`,
         details: [transactionDetails],
@@ -91,6 +112,7 @@ const Circulation = () => {
     });
 
     setQuantity(1);
+    setDescription('');
   };
 
   return (
@@ -135,6 +157,15 @@ const Circulation = () => {
                     ))}
                 </Select>
             </FormControl>
+            <TextField
+                label="Description"
+                variant="outlined"
+                fullWidth
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="circulation-input"
+                sx={{ mt: 2 }}
+              />
             <Box className="circulation-actions">
               <TextField
                 label="Quantity"
