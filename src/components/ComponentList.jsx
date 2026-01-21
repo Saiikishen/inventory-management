@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import Modal from 'react-modal';
 import './ComponentList.css';
 
@@ -101,6 +101,15 @@ const ComponentList = () => {
                 locations: [{ id: stockLocationId, name: location.name, stock: stock }]
             };
             await setDoc(componentRef, newComponentData);
+
+            // Log the transaction
+            const transactionDetails = `Component: ${name} (ID: ${componentId}), Quantity: ${stock}, Location: ${location.name}, Description: Initial stock for new component`;
+            await addDoc(collection(db, "transactions"), {
+                type: 'Component Creation',
+                details: [transactionDetails],
+                timestamp: serverTimestamp()
+            });
+
             setNewComponent({ name: '', category: '', value: '', footprint: '', toleranceRating: '', manufacturer: '', pricing: '', initialStock: '', stockLocationId: '' });
             setSnackbar({ open: true, message: 'Component added successfully!', type: 'success' });
         } catch (error) {
@@ -185,6 +194,15 @@ const ComponentList = () => {
 
         try {
             await updateDoc(componentRef, { locations: newLocations });
+            // Log the transaction
+            const location = stockLocations.find(loc => loc.id === locationId);
+            const transactionDetails = `Component: ${selectedComponent.name} (ID: ${selectedComponent.id}), Quantity: ${stockToAdd}, Location: ${location.name}, Description: Added stock`;
+            await addDoc(collection(db, "transactions"), {
+                type: 'Stock Addition',
+                details: [transactionDetails],
+                timestamp: serverTimestamp()
+            });
+
             setSnackbar({ open: true, message: 'Stock added successfully!', type: 'success' });
             closeAddStockModal();
         } catch (error) {
