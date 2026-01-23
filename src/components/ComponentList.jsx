@@ -141,12 +141,7 @@ const ComponentList = () => {
         if (!editingComponentId) return;
         try {
             const componentRef = doc(db, 'components', editingComponentId);
-            const sanitizedLocations = editedComponentData.locations.map(loc => ({
-                ...loc,
-                stock: Number(loc.stock) || 0
-            }));
             await updateDoc(componentRef, {
-                locations: sanitizedLocations,
                 pricing: editedComponentData.pricing,
                 manufacturer: editedComponentData.manufacturer
             });
@@ -276,21 +271,7 @@ const ComponentList = () => {
                         <tr key={component.id}>
                             <td>{component.id}</td>
                             <td>
-                                {editingComponentId === component.id ? (
-                                    editedComponentData.locations.map((loc, index) => (
-                                        <div key={index} className="location-edit">
-                                            <span>{loc.name}: </span>
-                                            <input type="number" value={loc.stock} onChange={(e) => {
-                                                const newLocations = [...editedComponentData.locations];
-                                                const parsedValue = parseInt(e.target.value, 10);
-                                                newLocations[index].stock = isNaN(parsedValue) ? '' : parsedValue;
-                                                setEditedComponentData({...editedComponentData, locations: newLocations});
-                                            }}/>
-                                        </div>
-                                    ))
-                                ) : (
-                                    (component.locations || []).map(loc => `${loc.name}: ${loc.stock}`).join(', ')
-                                )}
+                                {(component.locations || []).map(loc => `${loc.name}: ${loc.stock}`).join(', ')}
                             </td>
                             <td>
                                 {editingComponentId === component.id ?
