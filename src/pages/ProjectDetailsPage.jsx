@@ -27,7 +27,7 @@ const ProjectDetailsPage = () => {
 
         const unsubscribeComponents = onSnapshot(collection(db, 'components'), (snapshot) => {
             const componentsData = snapshot.docs.reduce((acc, doc) => {
-                acc[doc.id] = { ...doc.data(), id: doc.id }; // Add id to component data
+                acc[doc.id] = { ...doc.data(), id: doc.id };
                 return acc;
             }, {});
             setComponents(componentsData);
@@ -104,14 +104,21 @@ const ProjectDetailsPage = () => {
         id: component.id,
     }));
 
+    const totalBomPrice = bom.reduce((total, item) => {
+        const component = components[item.componentId];
+        const unitPrice = component ? parseFloat(component.pricing) || 0 : 0;
+        return total + (item.quantity * unitPrice);
+    }, 0);
 
     return (
         <div className="project-details-page-container">
             {project ? (
                 <>
                     <h1>{project.name} - Bill of Materials</h1>
+                    <div className="total-price-container">
+                        <h2>Total BOM Price: ₹{totalBomPrice.toFixed(2)}</h2>
+                    </div>
 
-                    {/* ADD TO BOM FORM */}
                     <div className="add-to-bom-form">
                         <Autocomplete
                             options={componentOptions}
@@ -123,7 +130,6 @@ const ProjectDetailsPage = () => {
                             }}
                             renderInput={(params) => <TextField {...params} label="Select Component" variant="outlined" />}
                         />
-
 
                         <select
                             value={selectedLocation}
@@ -140,7 +146,6 @@ const ProjectDetailsPage = () => {
                         <button onClick={handleAddComponentToBom}>Add to BOM</button>
                     </div>
 
-                    {/* BOM TABLE */}
                     <table className="bom-table">
                         <thead>
                             <tr>
@@ -148,65 +153,72 @@ const ProjectDetailsPage = () => {
                                 <th>Manufacturer Part No:</th>
                                 <th>Location</th>
                                 <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total Price</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {bom.map((item, index) => (
-                                <tr key={index}>
-                                    {/* COMPONENT ID INSTEAD OF NAME */}
-                                    <td>{item.componentId}</td>
-                                    <td>{components[item.componentId]?.manufacturerPartNo}</td>
-                                    <td>
-                                        {stockLocations.find(loc => loc.id === item.locationId)?.name}
-                                    </td>
+                            {bom.map((item, index) => {
+                                const component = components[item.componentId];
+                                const unitPrice = component ? parseFloat(component.pricing) || 0 : 0;
+                                const totalPrice = (item.quantity * unitPrice).toFixed(2);
 
-                                    {editingBomItem.index === index ? (
+                                return (
+                                    <tr key={index}>
+                                        <td>{item.componentId}</td>
+                                        <td>{component?.manufacturerPartNo}</td>
                                         <td>
-                                            <input
-                                                type="number"
-                                                value={editingBomItem.quantity}
-                                                onChange={(e) =>
-                                                    setEditingBomItem({
-                                                        ...editingBomItem,
-                                                        quantity: e.target.value
-                                                    })
-                                                }
-                                            />
+                                            {stockLocations.find(loc => loc.id === item.locationId)?.name}
                                         </td>
-                                    ) : (
-                                        <td>{item.quantity}</td>
-                                    )}
-
-                                    <td>
                                         {editingBomItem.index === index ? (
-                                            <>
-                                                <button className="action-button save-button" onClick={handleUpdateQuantity}>
-                                                    Save
-                                                </button>
-                                                <button className="action-button cancel-button" onClick={handleCancelEdit}>
-                                                    Cancel
-                                                </button>
-                                            </>
+                                            <td>
+                                                <input
+                                                    type="number"
+                                                    value={editingBomItem.quantity}
+                                                    onChange={(e) =>
+                                                        setEditingBomItem({
+                                                            ...editingBomItem,
+                                                            quantity: e.target.value
+                                                        })
+                                                    }
+                                                />
+                                            </td>
                                         ) : (
-                                            <>
-                                                <button
-                                                    className="action-button edit-button"
-                                                    onClick={() => handleEditClick(index, item.quantity)}
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="action-button delete-button"
-                                                    onClick={() => handleDeleteBomItem(index)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </>
+                                            <td>{item.quantity}</td>
                                         )}
-                                    </td>
-                                </tr>
-                            ))}
+                                        <td>₹{unitPrice.toFixed(2)}</td>
+                                        <td>₹{totalPrice}</td>
+                                        <td>
+                                            {editingBomItem.index === index ? (
+                                                <>
+                                                    <button className="action-button save-button" onClick={handleUpdateQuantity}>
+                                                        Save
+                                                    </button>
+                                                    <button className="action-button cancel-button" onClick={handleCancelEdit}>
+                                                        Cancel
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        className="action-button edit-button"
+                                                        onClick={() => handleEditClick(index, item.quantity)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        className="action-button delete-button"
+                                                        onClick={() => handleDeleteBomItem(index)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </>
