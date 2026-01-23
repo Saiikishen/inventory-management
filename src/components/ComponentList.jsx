@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import Modal from 'react-modal';
 import './ComponentList.css';
 
@@ -91,9 +91,17 @@ const ComponentList = () => {
             return;
         }
         const componentId = [category, name, value, footprint, toleranceRating].filter(Boolean).join('-').toUpperCase();
+        
+        const componentRef = doc(db, 'components', componentId);
+        const docSnap = await getDoc(componentRef);
+
+        if (docSnap.exists()) {
+            setSnackbar({ open: true, message: 'Component already exists.', type: 'error' });
+            return;
+        }
+
         const stock = parseInt(initialStock, 10) || 0;
         try {
-            const componentRef = doc(db, 'components', componentId);
             const location = stockLocations.find(loc => loc.id === stockLocationId);
             const newComponentData = {
                 name, category, value, footprint, toleranceRating, manufacturer, manufacturerPartNo, pricing,
