@@ -11,6 +11,10 @@ import TransactionLogPage from './pages/TransactionLogPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import Circulation from './pages/Circulation';
+import ProductsPage from './pages/ProductsPage';
+import DevicesPage from './pages/DevicesPage';
+import OrdersPage from './pages/OrdersPage';
+import AllDevicesPage from './pages/AllDevicesPage';
 
 function App() {
     const { user, loading } = useAuth();
@@ -33,6 +37,11 @@ function App() {
                             <Route path="/components" element={<ComponentCatalogPage />} />
                             <Route path="/transactions" element={<TransactionLogPage />} />
                             <Route path="/circulation" element={<Circulation />} />
+                            <Route path="/products" element={<ProductsPage />}>
+                                <Route index element={<AllDevicesPage />} />
+                                <Route path="add" element={<DevicesPage />} />
+                                <Route path="orders" element={<OrdersPage />} />
+                            </Route>
                             <Route path="*" element={<Navigate to="/" />} />
                         </Routes>
                     </main>

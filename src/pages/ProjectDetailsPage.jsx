@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import './ProjectDetailsPage.css';
+import { Autocomplete, TextField } from '@mui/material';
 
 const ProjectDetailsPage = () => {
     const { projectId } = useParams();
@@ -10,7 +11,7 @@ const ProjectDetailsPage = () => {
     const [components, setComponents] = useState({});
     const [stockLocations, setStockLocations] = useState([]);
     const [bom, setBom] = useState([]);
-    const [selectedComponent, setSelectedComponent] = useState('');
+    const [selectedComponent, setSelectedComponent] = useState(null);
     const [selectedLocation, setSelectedLocation] = useState('');
     const [editingBomItem, setEditingBomItem] = useState({ index: null, quantity: '' });
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
@@ -26,7 +27,7 @@ const ProjectDetailsPage = () => {
 
         const unsubscribeComponents = onSnapshot(collection(db, 'components'), (snapshot) => {
             const componentsData = snapshot.docs.reduce((acc, doc) => {
-                acc[doc.id] = doc.data();
+                acc[doc.id] = { ...doc.data(), id: doc.id }; // Add id to component data
                 return acc;
             }, {});
             setComponents(componentsData);
@@ -52,12 +53,13 @@ const ProjectDetailsPage = () => {
 
         const newBom = [
             ...bom,
-            { componentId: selectedComponent, locationId: selectedLocation, quantity: 1 }
+            { componentId: selectedComponent.id, locationId: selectedLocation, quantity: 1 }
         ];
 
         try {
             await updateDoc(doc(db, 'projects', projectId), { bom: newBom });
             setSnackbar({ open: true, message: 'Component added to BOM!', type: 'success' });
+            setSelectedComponent(null);
         } catch (error) {
             setSnackbar({ open: true, message: `Error adding to BOM: ${error.message}`, type: 'error' });
         }
@@ -97,6 +99,12 @@ const ProjectDetailsPage = () => {
         }
     };
 
+    const componentOptions = Object.values(components).map(component => ({
+        label: `${component.name} (ID: ${component.id})`,
+        id: component.id,
+    }));
+
+
     return (
         <div className="project-details-page-container">
             {project ? (
@@ -105,17 +113,17 @@ const ProjectDetailsPage = () => {
 
                     {/* ADD TO BOM FORM */}
                     <div className="add-to-bom-form">
-                        <select
+                        <Autocomplete
+                            options={componentOptions}
+                            getOptionLabel={(option) => option.label}
+                            style={{ width: 300 }}
                             value={selectedComponent}
-                            onChange={(e) => setSelectedComponent(e.target.value)}
-                        >
-                            <option value="">Select Component</option>
-                            {Object.entries(components).map(([componentId, component]) => (
-                                <option key={componentId} value={componentId}>
-                                    {component.name} (ID: {componentId})
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(event, newValue) => {
+                                setSelectedComponent(newValue);
+                            }}
+                            renderInput={(params) => <TextField {...params} label="Select Component" variant="outlined" />}
+                        />
+
 
                         <select
                             value={selectedLocation}

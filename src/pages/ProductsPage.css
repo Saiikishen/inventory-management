@@ -1,0 +1,65 @@
+.products-page {
+    padding: 1rem;
+}
+
+.products-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.products-nav-link {
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: #333;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.products-nav-link.active {
+    background-color: orange;
+    color: white;
+}
+
+.products-nav-link:hover {
+    background-color: #f0f0f0;
+}
+
+.products-nav-link.active:hover {
+    background-color: darkorange;
+}
+
+/* Form specific styles that were here before, now scoped to be more generic if needed */
+.products-page .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.products-page .form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.products-page .form-field label {
+    margin-bottom: 0.5rem;
+}
+
+.products-page .form-field input,
+.products-page .form-field textarea {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.products-page .submit-button {
+    grid-column: span 2;
+    padding: 0.75rem;
+    background-color: orange;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}

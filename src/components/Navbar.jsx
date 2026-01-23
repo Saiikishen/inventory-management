@@ -22,6 +22,7 @@ const Navbar = () => {
             <NavLink to="/projects" className={({ isActive }) => "navbar-link" + (isActive ? " active" : "")}>Projects</NavLink>
             <NavLink to="/transactions" className={({ isActive }) => "navbar-link" + (isActive ? " active" : "")}>Transactions</NavLink>
             <NavLink to="/circulation" className={({ isActive }) => "navbar-link" + (isActive ? " active" : "")}>Circulation</NavLink>
+            <NavLink to="/products" className={({ isActive }) => "navbar-link" + (isActive ? " active" : "")}>Products</NavLink>
             {isAdmin && (
               <NavLink to="/components" className={({ isActive }) => "navbar-link" + (isActive ? " active" : "")}>Component Catalog</NavLink>
             )}
