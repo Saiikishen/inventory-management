@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, writeBatch, doc } from "firebase/firestore";
 import { db } from '../firebase';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 import {
     Container,
     Typography,
@@ -9,15 +12,37 @@ import {
     List,
     ListItem,
     ListItemText,
-    Divider
+    Divider,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle
 } from '@mui/material';
 
 const TransactionLogPage = () => {
     const [transactions, setTransactions] = useState([]);
+    const [user, setUser] = useState(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [open, setOpen] = useState(false);
 
     useEffect(() => {
+        const auth = getAuth();
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setUser(user);
+                user.getIdTokenResult().then(idTokenResult => {
+                    setIsAdmin(!!idTokenResult.claims.admin);
+                });
+            } else {
+                setUser(null);
+                setIsAdmin(false);
+            }
+        });
+
         const q = query(collection(db, "transactions"), orderBy("timestamp", "desc"));
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const unsubscribeTransactions = onSnapshot(q, (querySnapshot) => {
             const transactionsData = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
@@ -26,14 +51,54 @@ const TransactionLogPage = () => {
             setTransactions(transactionsData);
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeAuth();
+            unsubscribeTransactions();
+        };
     }, []);
+
+    const handleOpen = () => {
+        setOpen(true);
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+    };
+
+    const handleDelete = async () => {
+        const worksheet = XLSX.utils.json_to_sheet(transactions.map(t => ({
+            Type: t.type,
+            Timestamp: t.timestamp.toLocaleString(),
+            Details: t.details.join('\n')
+        })));
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], {type: "application/octet-stream"});
+        saveAs(data, 'transaction-log.xlsx');
+
+        const batch = writeBatch(db);
+        transactions.forEach(transaction => {
+            const docRef = doc(db, "transactions", transaction.id);
+            batch.delete(docRef);
+        });
+        await batch.commit();
+
+        handleClose();
+    };
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Typography variant="h4" gutterBottom component="div" sx={{ mb: 3, fontWeight: 'bold' }}>
-                Transaction Log
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h4" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
+                    Transaction Log
+                </Typography>
+                {isAdmin && (
+                    <Button variant="contained" color="error" onClick={handleOpen}>
+                        Delete Log
+                    </Button>
+                )}
+            </Box>
             <Paper sx={{ p: 2 }}>
                 <List>
                     {transactions.map((transaction, index) => (
@@ -74,6 +139,23 @@ const TransactionLogPage = () => {
                     </Typography>
                 )}
             </Paper>
+            <Dialog
+                open={open}
+                onClose={handleClose}
+            >
+                <DialogTitle>Delete Transaction Log?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to delete the entire transaction log? This action will download the log as an Excel file and then permanently delete it. This action cannot be undone.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClose}>Cancel</Button>
+                    <Button onClick={handleDelete} color="error">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 };
