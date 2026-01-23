@@ -256,7 +256,9 @@ const ComponentList = () => {
                         </ul>
                     </div>
                 )}
-                <button onClick={handleAddComponent}>Add Component</button>
+                <div className="add-component-button-container">
+                  <button onClick={handleAddComponent} className="add-component-button">Add Component</button>
+                </div>
             </div>
 
             <table className="component-table">

@@ -177,3 +177,13 @@
     cursor: pointer;
     margin-left: 1rem;
 }
+
+.add-component-button-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.add-component-button {
+    background-color: orange !important;
+}
