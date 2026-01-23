@@ -137,6 +137,7 @@ const ProjectDetailsPage = () => {
                         <thead>
                             <tr>
                                 <th>Component ID</th>
+                                <th>Manufacturer Part No:</th>
                                 <th>Location</th>
                                 <th>Quantity</th>
                                 <th>Actions</th>
@@ -147,7 +148,7 @@ const ProjectDetailsPage = () => {
                                 <tr key={index}>
                                     {/* COMPONENT ID INSTEAD OF NAME */}
                                     <td>{item.componentId}</td>
-
+                                    <td>{components[item.componentId]?.manufacturerPartNo}</td>
                                     <td>
                                         {stockLocations.find(loc => loc.id === item.locationId)?.name}
                                     </td>

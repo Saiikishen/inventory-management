@@ -10,7 +10,7 @@ const ComponentList = () => {
     const [components, setComponents] = useState([]);
     const [newComponent, setNewComponent] = useState({
         name: '', category: '', value: '', footprint: '',
-        toleranceRating: '', manufacturer: '', pricing: '',
+        toleranceRating: '', manufacturer: '', manufacturerPartNo: '', pricing: '',
         initialStock: '', stockLocationId: ''
     });
     const [stockLocations, setStockLocations] = useState([]);
@@ -18,7 +18,7 @@ const ComponentList = () => {
     const [showRemoveLocationUI, setShowRemoveLocationUI] = useState(false);
     const [newLocationName, setNewLocationName] = useState('');
     const [editingComponentId, setEditingComponentId] = useState(null);
-    const [editedComponentData, setEditedComponentData] = useState({ locations: [], pricing: '', manufacturer: '' });
+    const [editedComponentData, setEditedComponentData] = useState({ locations: [], pricing: '', manufacturer: '', manufacturerPartNo: '' });
 
     // State for the new "Add Stock" modal
     const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
@@ -85,7 +85,7 @@ const ComponentList = () => {
     };
 
     const handleAddComponent = async () => {
-        const { name, category, value, footprint, toleranceRating, manufacturer, pricing, initialStock, stockLocationId } = newComponent;
+        const { name, category, value, footprint, toleranceRating, manufacturer, manufacturerPartNo, pricing, initialStock, stockLocationId } = newComponent;
         if (!name || !category || !stockLocationId) {
             setSnackbar({ open: true, message: 'Category, Name, and Stock Location are required.', type: 'error' });
             return;
@@ -96,7 +96,7 @@ const ComponentList = () => {
             const componentRef = doc(db, 'components', componentId);
             const location = stockLocations.find(loc => loc.id === stockLocationId);
             const newComponentData = {
-                name, category, value, footprint, toleranceRating, manufacturer, pricing,
+                name, category, value, footprint, toleranceRating, manufacturer, manufacturerPartNo, pricing,
                 createdAt: new Date(),
                 locations: [{ id: stockLocationId, name: location.name, stock: stock }]
             };
@@ -110,7 +110,7 @@ const ComponentList = () => {
                 timestamp: serverTimestamp()
             });
 
-            setNewComponent({ name: '', category: '', value: '', footprint: '', toleranceRating: '', manufacturer: '', pricing: '', initialStock: '', stockLocationId: '' });
+            setNewComponent({ name: '', category: '', value: '', footprint: '', toleranceRating: '', manufacturer: '', manufacturerPartNo: '', pricing: '', initialStock: '', stockLocationId: '' });
             setSnackbar({ open: true, message: 'Component added successfully!', type: 'success' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error adding component: ${error.message}`, type: 'error' });
@@ -131,7 +131,8 @@ const ComponentList = () => {
         setEditedComponentData({
             locations: component.locations || [],
             pricing: component.pricing || '',
-            manufacturer: component.manufacturer || ''
+            manufacturer: component.manufacturer || '',
+            manufacturerPartNo: component.manufacturerPartNo || ''
         });
     };
 
@@ -143,7 +144,8 @@ const ComponentList = () => {
             const componentRef = doc(db, 'components', editingComponentId);
             await updateDoc(componentRef, {
                 pricing: editedComponentData.pricing,
-                manufacturer: editedComponentData.manufacturer
+                manufacturer: editedComponentData.manufacturer,
+                manufacturerPartNo: editedComponentData.manufacturerPartNo
             });
             setSnackbar({ open: true, message: 'Component updated successfully!', type: 'success' });
             handleCancelEdit();
@@ -227,6 +229,7 @@ const ComponentList = () => {
                 <input type="text" name="footprint" value={newComponent.footprint} onChange={handleInputChange} placeholder="Footprint" />
                 <input type="text" name="toleranceRating" value={newComponent.toleranceRating} onChange={handleInputChange} placeholder="Tolerance" />
                 <input type="text" name="manufacturer" value={newComponent.manufacturer} onChange={handleInputChange} placeholder="Manufacturer Links" />
+                <input type="text" name="manufacturerPartNo" value={newComponent.manufacturerPartNo} onChange={handleInputChange} placeholder="Manufacturer Part No:" />
                 <input type="number" name="pricing" value={newComponent.pricing} onChange={handleInputChange} placeholder="Pricing" />
                 <input type="number" name="initialStock" value={newComponent.initialStock} onChange={handleInputChange} placeholder="Initial Stock" />
                 <select name="stockLocationId" value={newComponent.stockLocationId} onChange={handleInputChange}>
@@ -263,6 +266,7 @@ const ComponentList = () => {
                         <th>Locations (Stock)</th>
                         <th>Pricing</th>
                         <th>Manufacturer</th>
+                        <th>Manufacturer Part No:</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -282,6 +286,11 @@ const ComponentList = () => {
                                 {editingComponentId === component.id ?
                                  <input type="text" value={editedComponentData.manufacturer} onChange={(e) => setEditedComponentData({...editedComponentData, manufacturer: e.target.value})}/> :
                                  renderManufacturerLinks(component.manufacturer)}
+                            </td>
+                            <td>
+                                {editingComponentId === component.id ?
+                                 <input type="text" value={editedComponentData.manufacturerPartNo} onChange={(e) => setEditedComponentData({...editedComponentData, manufacturerPartNo: e.target.value})}/> :
+                                 component.manufacturerPartNo}
                             </td>
                             <td>
                                 {editingComponentId === component.id ? (

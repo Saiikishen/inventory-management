@@ -138,6 +138,7 @@ const HomePage = () => {
              <Box mt={2} p={2} sx={{ border: '1px solid #ddd', borderRadius: '4px' }}>
                 <Typography variant="h6">{searchResult.name}</Typography>
                 <Typography>ID: {searchResult.id}</Typography>
+                {searchResult.manufacturerPartNo && <Typography>Manufacturer Part No: {searchResult.manufacturerPartNo}</Typography>}
                 <Box mt={1}>
                     <Typography variant="subtitle1" sx={{fontWeight: '600'}}>Stock by Location:</Typography>
                     {searchInventory.length > 0 ? (
@@ -174,7 +175,18 @@ const HomePage = () => {
                         <ListItem className="list-item-container">
                             <ListItemText 
                                 primary={`${comp.name} (Total: ${comp.totalQuantity})`} 
-                                secondary={`ID: ${comp.id}`}
+                                secondary={(
+                                    <>
+                                        <Typography component="span" variant="body2" color="text.primary">
+                                            ID: {comp.id}
+                                        </Typography>
+                                        {comp.manufacturerPartNo &&
+                                            <Typography component="span" variant="body2" color="text.primary" sx={{ display: 'block' }}>
+                                                Mfr. Part No: {comp.manufacturerPartNo}
+                                            </Typography>
+                                        }
+                                    </>
+                                )}
                             />
                         </ListItem>
                         <Collapse in={true} timeout="auto" unmountOnExit>
