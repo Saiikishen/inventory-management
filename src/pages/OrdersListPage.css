@@ -1,0 +1,26 @@
+.orders-list-page {
+    padding: 20px;
+}
+
+.order-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.order-card-header {
+    margin-bottom: 15px;
+}
+
+.order-card-header h3 {
+    margin: 0;
+}
+
+.device-details {
+    padding-left: 20px;
+    border-left: 3px solid #007bff;
+    margin-top: 15px;
+}

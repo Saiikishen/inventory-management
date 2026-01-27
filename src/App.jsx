@@ -15,6 +15,7 @@ import ProductsPage from './pages/ProductsPage';
 import DevicesPage from './pages/DevicesPage';
 import OrdersPage from './pages/OrdersPage';
 import AllDevicesPage from './pages/AllDevicesPage';
+import OrdersListPage from './pages/OrdersListPage';
 
 function App() {
     const { user, loading } = useAuth();
@@ -41,6 +42,7 @@ function App() {
                                 <Route index element={<AllDevicesPage />} />
                                 <Route path="add" element={<DevicesPage />} />
                                 <Route path="orders" element={<OrdersPage />} />
+                                <Route path="list" element={<OrdersListPage />} />
                             </Route>
                             <Route path="*" element={<Navigate to="/" />} />
                         </Routes>

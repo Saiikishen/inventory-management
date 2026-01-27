@@ -132,6 +132,7 @@
     border-radius: 4px;
     cursor: pointer;
     background-color: #f8f9fa;
+    color: #000;
 }
 
 .device-form {

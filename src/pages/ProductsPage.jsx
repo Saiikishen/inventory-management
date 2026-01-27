@@ -15,6 +15,9 @@ const ProductsPage = () => {
                 <NavLink to="/products/orders" className={({ isActive }) => isActive ? 'products-nav-link active' : 'products-nav-link'}>
                     Orders
                 </NavLink>
+                <NavLink to="/products/list" className={({ isActive }) => isActive ? 'products-nav-link active' : 'products-nav-link'}>
+                    Orders List
+                </NavLink>
             </nav>
             <Outlet />
         </div>

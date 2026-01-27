@@ -64,7 +64,9 @@ const AllDevicesPage = () => {
         setSelectedDevice({ 
             ...device,
             wifiConfig: device.wifiConfig || { ssid: '', password: '' },
-            type: device.type || { display: '', pcbVersion: '', firmwareVersion: '' }
+            type: device.type || { display: '', pcbVersion: '', firmwareVersion: '' },
+            estDeliveryDate: device.estDeliveryDate || '',
+            status: device.status || ''
         });
         setEditModalOpen(true);
     };
@@ -119,6 +121,8 @@ const AllDevicesPage = () => {
                         <p><strong>Location:</strong> {device.location || 'N/A'}</p>
                         <p><strong>Manufacture Date:</strong> {device.manufactureDate || 'N/A'}</p>
                         <p><strong>Sold Date:</strong> {device.soldDate || 'N/A'}</p>
+                        <p><strong>Est. Delivery Date:</strong> {device.estDeliveryDate || 'N/A'}</p>
+                        <p><strong>Status:</strong> {device.status || 'N/A'}</p>
                         <div className="device-card-actions">
                             <button onClick={() => openEditModal(device)} className="action-button edit-button">Edit</button>
                             <button onClick={() => openDeleteModal(device)} className="action-button delete-button">Delete</button>
@@ -177,6 +181,19 @@ const AllDevicesPage = () => {
                             <div className="form-field">
                                 <label>Sold Date</label>
                                 <input type="date" name="soldDate" value={selectedDevice.soldDate} onChange={handleEditChange} />
+                            </div>
+                             <div className="form-field">
+                                <label>Est. Delivery Date</label>
+                                <input type="date" name="estDeliveryDate" value={selectedDevice.estDeliveryDate} onChange={handleEditChange} />
+                            </div>
+                             <div className="form-field">
+                                <label>Status</label>
+                                <select name="status" value={selectedDevice.status} onChange={handleEditChange}>
+                                    <option value="">Select Status</option>
+                                    <option value="order received">Order Received</option>
+                                    <option value="production begun">Production Begun</option>
+                                    <option value="shipped">Shipped</option>
+                                </select>
                             </div>
                              <div className="form-field">
                                 <label>Count</label>
