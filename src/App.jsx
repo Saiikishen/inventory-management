@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import SpecialNavbar from './components/SpecialNavbar';
 import HomePage from './pages/HomePage';
 import ProjectPage from './pages/ProjectPage';
 import ProjectDetailsPage from './pages/ProjectDetailsPage';
@@ -28,24 +29,32 @@ function App() {
         <Router>
             {user ? (
                 <>
-                    <Navbar />
+                    {user.email === 'pvsaikishen@gmail.com' ? <SpecialNavbar /> : <Navbar />}
                     <main>
-                        <Routes>
-                            <Route path="/" element={<HomePage />} />
-                            <Route path="/projects" element={<ProjectPage />} />
-                            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-                            <Route path="/projects/:projectId/production" element={<ProductionRunPage />} />
-                            <Route path="/components" element={<ComponentCatalogPage />} />
-                            <Route path="/transactions" element={<TransactionLogPage />} />
-                            <Route path="/circulation" element={<Circulation />} />
-                            <Route path="/products" element={<ProductsPage />}>
-                                <Route index element={<AllDevicesPage />} />
-                                <Route path="add" element={<DevicesPage />} />
-                                <Route path="orders" element={<OrdersPage />} />
-                                <Route path="list" element={<OrdersListPage />} />
-                            </Route>
-                            <Route path="*" element={<Navigate to="/" />} />
-                        </Routes>
+                        {user.email === 'pvsaikishen@gmail.com' ? (
+                            <Routes>
+                                <Route path="/products/orders" element={<OrdersPage />} />
+                                <Route path="/products/list" element={<OrdersListPage />} />
+                                <Route path="*" element={<Navigate to="/products/orders" />} />
+                            </Routes>
+                        ) : (
+                            <Routes>
+                                <Route path="/" element={<HomePage />} />
+                                <Route path="/projects" element={<ProjectPage />} />
+                                <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+                                <Route path="/projects/:projectId/production" element={<ProductionRunPage />} />
+                                <Route path="/components" element={<ComponentCatalogPage />} />
+                                <Route path="/transactions" element={<TransactionLogPage />} />
+                                <Route path="/circulation" element={<Circulation />} />
+                                <Route path="/products" element={<ProductsPage />}>
+                                    <Route index element={<AllDevicesPage />} />
+                                    <Route path="add" element={<DevicesPage />} />
+                                    <Route path="orders" element={<OrdersPage />} />
+                                    <Route path="list" element={<OrdersListPage />} />
+                                </Route>
+                                <Route path="*" element={<Navigate to="/" />} />
+                            </Routes>
+                        )}
                     </main>
                 </>
             ) : (
