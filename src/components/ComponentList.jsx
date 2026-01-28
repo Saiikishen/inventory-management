@@ -20,10 +20,15 @@ const ComponentList = () => {
     const [editingComponentId, setEditingComponentId] = useState(null);
     const [editedComponentData, setEditedComponentData] = useState({ locations: [], pricing: '', manufacturer: '', manufacturerPartNo: '' });
 
-    // State for the new "Add Stock" modal
     const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
     const [selectedComponent, setSelectedComponent] = useState(null);
     const [addStockData, setAddStockData] = useState({ locationId: '', quantity: 0 });
+
+    const [isDeleteLocationModalOpen, setIsDeleteLocationModalOpen] = useState(false);
+    const [locationToDelete, setLocationToDelete] = useState(null);
+
+    const [isDeleteComponentModalOpen, setIsDeleteComponentModalOpen] = useState(false);
+    const [componentToDelete, setComponentToDelete] = useState(null);
 
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
 
@@ -75,13 +80,34 @@ const ComponentList = () => {
         }
     };
 
-    const handleDeleteLocation = async (id) => {
+    const handleDeleteLocation = (id) => {
+        const isLocationInUse = components.some(component => 
+            (component.locations || []).some(loc => loc.id === id)
+        );
+
+        if (isLocationInUse) {
+            setSnackbar({ open: true, message: 'This location is in use and cannot be deleted.', type: 'error' });
+            return;
+        }
+
+        setLocationToDelete(id);
+        setIsDeleteLocationModalOpen(true);
+    };
+
+    const confirmDeleteLocation = async () => {
+        if (!locationToDelete) return;
         try {
-            await deleteDoc(doc(db, 'stock_locations', id));
+            await deleteDoc(doc(db, 'stock_locations', locationToDelete));
             setSnackbar({ open: true, message: 'Location deleted successfully!', type: 'success' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error deleting location: ${error.message}`, type: 'error' });
         }
+        closeDeleteLocationModal();
+    };
+
+    const closeDeleteLocationModal = () => {
+        setIsDeleteLocationModalOpen(false);
+        setLocationToDelete(null);
     };
 
     const handleAddComponent = async () => {
@@ -110,7 +136,6 @@ const ComponentList = () => {
             };
             await setDoc(componentRef, newComponentData);
 
-            // Log the transaction
             const transactionDetails = `Component: ${name} (ID: ${componentId}), Quantity: ${stock}, Location: ${location.name}, Description: Initial stock for new component`;
             await addDoc(collection(db, "transactions"), {
                 type: 'Component Creation',
@@ -125,13 +150,25 @@ const ComponentList = () => {
         }
     };
 
-    const handleDeleteComponent = async (id) => {
+    const handleDeleteComponent = (id) => {
+        setComponentToDelete(id);
+        setIsDeleteComponentModalOpen(true);
+    };
+
+    const confirmDeleteComponent = async () => {
+        if (!componentToDelete) return;
         try {
-            await deleteDoc(doc(db, 'components', id));
+            await deleteDoc(doc(db, 'components', componentToDelete));
             setSnackbar({ open: true, message: 'Component deleted successfully!', type: 'success' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error deleting component: ${error.message}`, type: 'error' });
         }
+        closeDeleteComponentModal();
+    };
+
+    const closeDeleteComponentModal = () => {
+        setIsDeleteComponentModalOpen(false);
+        setComponentToDelete(null);
     };
 
     const handleEditClick = (component) => {
@@ -162,7 +199,6 @@ const ComponentList = () => {
         }
     };
 
-    // --- Functions for the new "Add Stock" feature ---
     const openAddStockModal = (component) => {
         setSelectedComponent(component);
         setIsAddStockModalOpen(true);
@@ -199,7 +235,6 @@ const ComponentList = () => {
 
         try {
             await updateDoc(componentRef, { locations: newLocations });
-            // Log the transaction
             const location = stockLocations.find(loc => loc.id === locationId);
             const transactionDetails = `Component: ${selectedComponent.name} (ID: ${selectedComponent.id}), Quantity: ${stockToAdd}, Location: ${location.name}, Description: Added stock`;
             await addDoc(collection(db, "transactions"), {
@@ -251,7 +286,7 @@ const ComponentList = () => {
                 {showNewLocationInput && (
                     <div className="new-location-input-container">
                         <input type="text" value={newLocationName} onChange={(e) => setNewLocationName(e.target.value)} placeholder="New Location Name" />
-                        <button onClick={handleSaveNewLocation}>Save</button>
+                        <button type="button" onClick={handleSaveNewLocation}>Save</button>
                     </div>
                 )}
                  {showRemoveLocationUI && (
@@ -259,13 +294,13 @@ const ComponentList = () => {
                         <h3>Remove a Stock Location</h3>
                         <ul>
                             {stockLocations.map(location => (
-                                <li key={location.id}>{location.name}<button onClick={() => handleDeleteLocation(location.id)}>Delete</button></li>
+                                <li key={location.id}>{location.name}<button type="button" onClick={() => handleDeleteLocation(location.id)}>Delete</button></li>
                             ))}
                         </ul>
                     </div>
                 )}
                 <div className="add-component-button-container">
-                  <button onClick={handleAddComponent} className="add-component-button">Add Component</button>
+                  <button type="button" onClick={handleAddComponent} className="add-component-button">Add Component</button>
                 </div>
             </div>
 
@@ -321,7 +356,6 @@ const ComponentList = () => {
                 </tbody>
             </table>
 
-            {/* Add Stock Modal */}
             <Modal isOpen={isAddStockModalOpen} onRequestClose={closeAddStockModal} contentLabel="Add Stock" className="modal" overlayClassName="overlay">
                 <h2>Add Stock for {selectedComponent?.id}</h2>
                 <div className="form-group">
@@ -339,6 +373,24 @@ const ComponentList = () => {
                 </div>
                 <button onClick={handleAddStock} className="run-button">Add Stock</button>
                 <button onClick={closeAddStockModal} className="cancel-button">Cancel</button>
+            </Modal>
+
+            <Modal isOpen={isDeleteLocationModalOpen} onRequestClose={closeDeleteLocationModal} contentLabel="Confirm Deletion" className="modal" overlayClassName="overlay">
+                <h2>Confirm Deletion</h2>
+                <p>Are you sure you want to delete this location? This action cannot be undone.</p>
+                <div className="modal-actions">
+                    <button onClick={confirmDeleteLocation} className="run-button">Delete</button>
+                    <button onClick={closeDeleteLocationModal} className="cancel-button">Cancel</button>
+                </div>
+            </Modal>
+
+            <Modal isOpen={isDeleteComponentModalOpen} onRequestClose={closeDeleteComponentModal} contentLabel="Confirm Deletion" className="modal" overlayClassName="overlay">
+                <h2>Confirm Deletion</h2>
+                <p>Are you sure you want to delete this component? This action cannot be undone.</p>
+                <div className="modal-actions">
+                    <button onClick={confirmDeleteComponent} className="run-button">Delete</button>
+                    <button onClick={closeDeleteComponentModal} className="cancel-button">Cancel</button>
+                </div>
             </Modal>
 
             {snackbar.open && (
