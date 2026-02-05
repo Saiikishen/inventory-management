@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, TextField, InputAdornment, Chip, List, ListItem, ListItemText, Collapse } from '@mui/material';
+import { Autocomplete, Box, Typography, TextField, InputAdornment, Chip, List, ListItem, ListItemText, Collapse } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -11,6 +11,7 @@ const HomePage = () => {
   const [searchInventory, setSearchInventory] = useState([]);
   const [searchError, setSearchError] = useState('');
   
+  const [allComponents, setAllComponents] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [componentsInCategory, setComponentsInCategory] = useState([]);
@@ -18,9 +19,11 @@ const HomePage = () => {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      // Fetch categories
+      // Fetch categories and all components
       const componentsSnapshot = await getDocs(collection(db, 'components'));
-      const categoriesSet = new Set(componentsSnapshot.docs.map(doc => doc.data().category));
+      const componentsData = componentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllComponents(componentsData);
+      const categoriesSet = new Set(componentsData.map(comp => comp.category));
       setCategories(Array.from(categoriesSet));
       
       // Fetch stock locations
@@ -32,19 +35,22 @@ const HomePage = () => {
     fetchInitialData();
   }, []);
 
-  const handleSearch = async () => {
-    if (!searchQuery) return;
+  const handleSearch = async (idToSearch) => {
+    const searchId = idToSearch || searchQuery;
+    if (!searchId) return;
+
     setSearchResult(null);
     setSearchInventory([]);
     setSelectedCategory(null);
     setComponentsInCategory([]);
 
-    const componentRef = doc(db, 'components', searchQuery);
+    const componentRef = doc(db, 'components', searchId);
     const componentSnap = await getDoc(componentRef);
 
     if (componentSnap.exists()) {
       const componentData = { id: componentSnap.id, ...componentSnap.data() };
       setSearchResult(componentData);
+      setSearchQuery(searchId);
       if (componentData.locations && Array.isArray(componentData.locations)) {
         const inventoryData = componentData.locations.map(loc => ({
           id: loc.id, // Assuming loc.id is the stockLocation id
@@ -53,7 +59,7 @@ const HomePage = () => {
         }));
         setSearchInventory(inventoryData);
       } else {
-        const q = query(collection(db, 'inventory'), where('componentId', '==', searchQuery));
+        const q = query(collection(db, 'inventory'), where('componentId', '==', searchId));
         const querySnapshot = await getDocs(q);
         const inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
         setSearchInventory(inventoryData);
@@ -118,20 +124,38 @@ const HomePage = () => {
           <Typography variant="h4" component="h2" gutterBottom>
             Search Components by ID
           </Typography>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Enter Component ID..."
+          <Autocomplete
+            freeSolo
+            options={allComponents.map((option) => option.id)}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+            onChange={(event, newValue) => {
+              if (newValue) {
+                handleSearch(newValue);
+              } else {
+                setSearchResult(null);
+                setSearchInventory([]);
+                setSearchQuery('');
+              }
             }}
+            onInputChange={(event, newInputValue) => {
+              setSearchQuery(newInputValue);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                placeholder="Enter Component ID..."
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
           />
           {searchError && <Typography color="error" sx={{mt: 2}}>{searchError}</Typography>}
           {searchResult && (
