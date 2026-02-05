@@ -50,8 +50,15 @@ const ProductionRunPage = () => {
     };
 
     const handleStockCheck = async () => {
-        if (!project || productionQuantity <= 0) return;
         setIsLoading(true);
+        const quantity = parseInt(productionQuantity, 10);
+
+        if (!project || !productionQuantity || isNaN(quantity) || quantity <= 0) {
+            setSnackbar({ open: true, message: 'Please enter a valid quantity.', type: 'error' });
+            setIsLoading(false);
+            return;
+        }
+
         setStockCheckResult(null);
         const bomData = project.bom;
         if (!bomData || bomData.length === 0) {
@@ -62,7 +69,7 @@ const ProductionRunPage = () => {
 
         try {
             const stockCheck = await Promise.all(bomData.map(async (item) => {
-                const requiredQuantity = item.quantity * productionQuantity;
+                const requiredQuantity = item.quantity * quantity;
                 const componentDoc = await getDoc(doc(db, 'components', item.componentId));
                 if (!componentDoc.exists()) {
                     return { ...item, requiredQuantity, availableStock: 0, hasEnoughStock: false, error: 'Component not found' };
@@ -170,7 +177,7 @@ const ProductionRunPage = () => {
                         <div className="stock-check-body">
                             <div className="form-group">
                                 <label htmlFor="quantity">Production Quantity:</label>
-                                <input id="quantity" type="number" value={productionQuantity} onChange={(e) => setProductionQuantity(Math.max(1, parseInt(e.target.value, 10)))} min="1" />
+                                <input id="quantity" type="number" value={productionQuantity} onChange={(e) => setProductionQuantity(e.target.value)} min="1" />
                             </div>
                         </div>
                         <div className="stock-check-actions">
