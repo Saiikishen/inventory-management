@@ -1,0 +1,129 @@
+/* StockCheckResult.css */
+
+.stock-check-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 10px;
+    max-width: 800px;
+    width: 95%;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh; /* Set a max-height */
+}
+
+.stock-check-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+}
+
+.stock-check-header {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    padding: 20px 30px;
+    border-bottom: 2px solid #eee;
+    flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.stock-check-body {
+    overflow-y: auto; /* Make body scrollable */
+    padding: 0 30px;
+}
+
+.stock-check-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.stock-check-table th,
+.stock-check-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: left;
+}
+
+.stock-check-table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    font-size: 12px;
+    position: sticky; /* Make header sticky */
+    top: 0; /* Stick to the top of the scrollable container */
+    z-index: 10;
+}
+
+.stock-check-status-ok {
+    color: #34a853;
+    font-weight: bold;
+}
+
+.stock-check-status-error {
+    color: #ea4335;
+    font-weight: bold;
+}
+
+.stock-check-out-of-stock {
+    background-color: #fce8e6;
+}
+
+.stock-check-actions {
+    padding: 20px 30px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    border-top: 2px solid #eee;
+    flex-shrink: 0; /* Prevent footer from shrinking */
+}
+
+.stock-check-button {
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.execute-run-button {
+    background-color: #34a853;
+    color: white;
+}
+
+.execute-run-button:hover {
+    background-color: #2c8a42;
+}
+
+.force-run-button {
+    background-color: #fbbc05;
+    color: white;
+}
+
+.force-run-button:hover {
+    background-color: #e0a800;
+}
+
+.cancel-button {
+    background-color: #6c757d;
+    color: white;
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+}
+
+.insufficient-stock-modal p {
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #555;
+}
