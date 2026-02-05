@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Paper, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
+import { Autocomplete, Box, Typography, TextField, Button, Paper, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
 import { doc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Circulation.css';
 
 const Circulation = () => {
   const [componentId, setComponentId] = useState('');
+  const [allComponents, setAllComponents] = useState([]);
   const [component, setComponent] = useState(null);
   const [inventory, setInventory] = useState([]);
   const [quantity, setQuantity] = useState(1);
@@ -21,17 +22,35 @@ const Circulation = () => {
         setStockLocations(locationsData);
     });
 
-    return () => unsubscribeLocations();
+    const unsubscribeComponents = onSnapshot(collection(db, 'components'), (snapshot) => {
+        const componentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAllComponents(componentsData);
+    });
+
+    return () => {
+        unsubscribeLocations();
+        unsubscribeComponents();
+    };
   }, []);
 
-  const handleSearch = async () => {
-    if (!componentId) return;
-    const componentRef = doc(db, 'components', componentId);
+  const handleSearch = async (idToSearch) => {
+    const searchId = idToSearch || componentId;
+    if (!searchId) {
+        setComponent(null);
+        setInventory([]);
+        setError('');
+        setSuccess('');
+        setComponentId('');
+        return;
+    }
+
+    const componentRef = doc(db, 'components', searchId);
     const componentSnap = await getDoc(componentRef);
 
     if (componentSnap.exists()) {
       const componentData = { id: componentSnap.id, ...componentSnap.data() };
       setComponent(componentData);
+      setComponentId(searchId);
       let inventoryData = [];
       if (componentData.locations && Array.isArray(componentData.locations)) {
         inventoryData = componentData.locations.map(loc => ({
@@ -40,7 +59,7 @@ const Circulation = () => {
           quantity: loc.stock
         }));
       } else {
-        const q = query(collection(db, 'inventory'), where('componentId', '==', componentId));
+        const q = query(collection(db, 'inventory'), where('componentId', '==', searchId));
         const querySnapshot = await getDocs(q);
         inventoryData = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
       }
@@ -84,9 +103,7 @@ const Circulation = () => {
       return;
     }
 
-    // If the data is in the inventory collection, update it there.
-    // Otherwise, we need to update the embedded locations array in the component document.
-    if (inventoryItem.id && !component.locations) { // Heuristic to check if it's from inventory collection
+    if (inventoryItem.id && !component.locations) { 
         const inventoryRef = doc(db, 'inventory', inventoryItem.id);
         await updateDoc(inventoryRef, { quantity: newQuantity });
     } else {
@@ -102,7 +119,6 @@ const Circulation = () => {
     setSuccess(`Successfully ${operation === 'use' ? 'used' : 'returned'} ${quantity} component(s).`);
     setError('');
 
-    // Log the transaction
     const locationName = stockLocations.find(loc => loc.id === selectedLocation)?.name || 'N/A';
     const transactionDetails = `Component: ${component.name} (ID: ${component.id}), Quantity: ${quantity}, Location: ${locationName}, Description: ${description}`;
     await addDoc(collection(db, "transactions"), {
@@ -121,14 +137,32 @@ const Circulation = () => {
         <Typography variant="h4" className="circulation-title">
           Component <span className="mod-part">Circulation</span>
         </Typography>
-        <TextField
-          label="Component ID"
-          variant="outlined"
-          fullWidth
+        <Autocomplete
+          freeSolo
+          options={allComponents.map((option) => option.id)}
           value={componentId}
-          onChange={(e) => setComponentId(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          className="circulation-input"
+          onChange={(event, newValue) => {
+            if (newValue) {
+              handleSearch(newValue);
+            } else {
+              setComponent(null);
+              setInventory([]);
+              setComponentId('');
+            }
+          }}
+          onInputChange={(event, newInputValue) => {
+            setComponentId(newInputValue);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Component ID"
+              variant="outlined"
+              fullWidth
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              className="circulation-input"
+            />
+          )}
         />
         {error && <Typography color="error" className="circulation-message">{error}</Typography>}
         {success && <Typography color="primary" className="circulation-message">{success}</Typography>}
