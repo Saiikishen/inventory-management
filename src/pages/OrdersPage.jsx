@@ -6,7 +6,7 @@ import './OrdersPage.css';
 const OrdersPage = () => {
     const [orders, setOrders] = useState([]);
     const [devicesByOrder, setDevicesByOrder] = useState({});
-    const [newOrder, setNewOrder] = useState({ product: '', variant: '', quantity: '', remarks: '' });
+    const [newOrder, setNewOrder] = useState({ product: '', variant: '', quantity: '', remarks: '', referenceName: '' });
     const [deviceNames, setDeviceNames] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
@@ -59,7 +59,7 @@ const OrdersPage = () => {
             const orderId = `${newOrder.product}-${Math.random().toString(36).substr(2, 9)}`;
             await addDoc(collection(db, 'orders'), { ...newOrder, name: orderId, createdAt: new Date() });
             setSnackbar({ open: true, message: 'Order added successfully!', type: 'success' });
-            setNewOrder({ product: '', variant: '', quantity: '', remarks: '' });
+            setNewOrder({ product: '', variant: '', quantity: '', remarks: '', referenceName: '' });
         } catch (error) {
             setSnackbar({ open: true, message: `Error adding order: ${error.message}`, type: 'error' });
         }
@@ -127,6 +127,17 @@ const OrdersPage = () => {
                         placeholder="Quantity"
                     />
                 </div>
+                <div className="form-field">
+                    <label htmlFor="referenceName">Reference Name</label>
+                    <input
+                        id="referenceName"
+                        type="text"
+                        name="referenceName"
+                        value={newOrder.referenceName}
+                        onChange={handleNewOrderChange}
+                        placeholder="Reference Name"
+                    />
+                </div>
                 <div className="form-field form-field-full-width">
                     <label htmlFor="remarks">Remarks</label>
                     <textarea
@@ -155,6 +166,7 @@ const OrdersPage = () => {
                     <div className="order-card-header">
                         <div>
                             <h3>Order ID: {order.name}</h3>
+                            <p><strong>Reference Name:</strong> {order.referenceName}</p>
                             <p><strong>Product:</strong> {order.product}</p>
                             <p><strong>Variant:</strong> {order.variant}</p>
                             <p><strong>Quantity:</strong> {order.quantity}</p>
