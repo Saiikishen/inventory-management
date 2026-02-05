@@ -217,7 +217,7 @@ const AllDevicesPage = () => {
                             </div>
                             <div className="form-field">
                                 <label>WiFi Password</label>
-                                <input type="password" name="wifiConfig.password" value={selectedDevice.wifiConfig.password} onChange={handleEditChange} placeholder="WiFi Password" />
+                                <input type="text" name="wifiConfig.password" value={selectedDevice.wifiConfig.password} onChange={handleEditChange} placeholder="WiFi Password" />
                             </div>
                              <div className="form-field">
                                 <label>Communication Protocol</label>
