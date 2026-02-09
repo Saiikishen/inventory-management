@@ -16,6 +16,8 @@ const ProjectDetailsPage = () => {
     const [editingBomItem, setEditingBomItem] = useState({ index: null, quantity: '' });
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
     const [searchTerm, setSearchTerm] = useState('');
+    const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [bomItemToDelete, setBomItemToDelete] = useState(null);
 
     useEffect(() => {
         const unsubscribeProject = onSnapshot(doc(db, 'projects', projectId), (docSnap) => {
@@ -72,16 +74,30 @@ const ProjectDetailsPage = () => {
         }
     };
 
-    const handleDeleteBomItem = async (index) => {
-        const newBom = [...bom];
-        newBom.splice(index, 1);
+    const handleDeleteBomItem = (index) => {
+        setBomItemToDelete(index);
+        setDeleteModalOpen(true);
+    };
 
-        try {
-            await updateDoc(doc(db, 'projects', projectId), { bom: newBom });
-            setSnackbar({ open: true, message: 'Component removed from BOM.', type: 'success' });
-        } catch (error) {
-            setSnackbar({ open: true, message: `Error removing from BOM: ${error.message}`, type: 'error' });
+    const confirmDelete = async () => {
+        if (bomItemToDelete !== null) {
+            const newBom = [...bom];
+            newBom.splice(bomItemToDelete, 1);
+    
+            try {
+                await updateDoc(doc(db, 'projects', projectId), { bom: newBom });
+                setSnackbar({ open: true, message: 'Component removed from BOM.', type: 'success' });
+            } catch (error) {
+                setSnackbar({ open: true, message: `Error removing from BOM: ${error.message}`, type: 'error' });
+            }
+            setDeleteModalOpen(false);
+            setBomItemToDelete(null);
         }
+    };
+
+    const closeDeleteModal = () => {
+        setDeleteModalOpen(false);
+        setBomItemToDelete(null);
     };
 
     const handleEditClick = (index, quantity) => {
@@ -255,6 +271,19 @@ const ProjectDetailsPage = () => {
                 </>
             ) : (
                 <p>Loading project...</p>
+            )}
+
+            {isDeleteModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h2>Confirm Deletion</h2>
+                        <p>Are you sure you want to delete this component from the BOM?</p>
+                        <div className="modal-actions">
+                            <button onClick={confirmDelete} className="delete-confirm-button">Delete</button>
+                            <button onClick={closeDeleteModal} className="cancel-button">Cancel</button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {snackbar.open && (
