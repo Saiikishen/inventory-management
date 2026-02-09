@@ -12,6 +12,7 @@ const AllDevicesPage = () => {
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
+    const [groupBy, setGroupBy] = useState('');
 
     useEffect(() => {
         const unsubscribeDevices = onSnapshot(collection(db, 'devices'), (snapshot) => {
@@ -101,6 +102,15 @@ const AllDevicesPage = () => {
         }
     };
 
+    const groupedDevices = filteredDevices.reduce((acc, device) => {
+        const key = device[groupBy] || 'N/A';
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(device);
+        return acc;
+    }, {});
+
     return (
         <div className="all-devices-page">
             <h2>All Devices</h2>
@@ -112,24 +122,55 @@ const AllDevicesPage = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="device-list">
-                {filteredDevices.map(device => (
-                    <div key={device.id} className="device-card">
-                        <h3>Part Number: {device.partNumber}</h3>
-                        <p><strong>Order ID:</strong> {device.orderId || 'N/A'}</p>
-                        <p><strong>Client Name:</strong> {device.clientName || 'N/A'}</p>
-                        <p><strong>Location:</strong> {device.location || 'N/A'}</p>
-                        <p><strong>Manufacture Date:</strong> {device.manufactureDate || 'N/A'}</p>
-                        <p><strong>Sold Date:</strong> {device.soldDate || 'N/A'}</p>
-                        <p><strong>Est. Delivery Date:</strong> {device.estDeliveryDate || 'N/A'}</p>
-                        <p><strong>Status:</strong> {device.status || 'N/A'}</p>
-                        <div className="device-card-actions">
-                            <button onClick={() => openEditModal(device)} className="action-button edit-button">Edit</button>
-                            <button onClick={() => openDeleteModal(device)} className="action-button delete-button">Delete</button>
+            <div className="group-by-buttons">
+                <button onClick={() => setGroupBy('orderId')}>Group by Order ID</button>
+                <button onClick={() => setGroupBy('status')}>Group by Status</button>
+                <button onClick={() => setGroupBy('')}>Clear Grouping</button>
+            </div>
+            {groupBy ? (
+                Object.keys(groupedDevices).map(group => (
+                    <div key={group}>
+                        <h3>{groupBy === 'orderId' ? `Order ID: ${group}` : `Status: ${group}`}</h3>
+                        <div className="device-list">
+                            {groupedDevices[group].map(device => (
+                                <div key={device.id} className="device-card">
+                                    <h3>Part Number: {device.partNumber}</h3>
+                                    <p><strong>Order ID:</strong> {device.orderId || 'N/A'}</p>
+                                    <p><strong>Client Name:</strong> {device.clientName || 'N/A'}</p>
+                                    <p><strong>Location:</strong> {device.location || 'N/A'}</p>
+                                    <p><strong>Manufacture Date:</strong> {device.manufactureDate || 'N/A'}</p>
+                                    <p><strong>Sold Date:</strong> {device.soldDate || 'N/A'}</p>
+                                    <p><strong>Est. Delivery Date:</strong> {device.estDeliveryDate || 'N/A'}</p>
+                                    <p><strong>Status:</strong> {device.status || 'N/A'}</p>
+                                    <div className="device-card-actions">
+                                        <button onClick={() => openEditModal(device)} className="action-button edit-button">Edit</button>
+                                        <button onClick={() => openDeleteModal(device)} className="action-button delete-button">Delete</button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                ))}
-            </div>
+                ))
+            ) : (
+                <div className="device-list">
+                    {filteredDevices.map(device => (
+                        <div key={device.id} className="device-card">
+                            <h3>Part Number: {device.partNumber}</h3>
+                            <p><strong>Order ID:</strong> {device.orderId || 'N/A'}</p>
+                            <p><strong>Client Name:</strong> {device.clientName || 'N/A'}</p>
+                            <p><strong>Location:</strong> {device.location || 'N/A'}</p>
+                            <p><strong>Manufacture Date:</strong> {device.manufactureDate || 'N/A'}</p>
+                            <p><strong>Sold Date:</strong> {device.soldDate || 'N/A'}</p>
+                            <p><strong>Est. Delivery Date:</strong> {device.estDeliveryDate || 'N/A'}</p>
+                            <p><strong>Status:</strong> {device.status || 'N/A'}</p>
+                            <div className="device-card-actions">
+                                <button onClick={() => openEditModal(device)} className="action-button edit-button">Edit</button>
+                                <button onClick={() => openDeleteModal(device)} className="action-button delete-button">Delete</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {isDeleteModalOpen && (
                  <div className="modal-overlay">
