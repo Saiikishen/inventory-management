@@ -15,6 +15,7 @@ const ProjectDetailsPage = () => {
     const [selectedLocation, setSelectedLocation] = useState('');
     const [editingBomItem, setEditingBomItem] = useState({ index: null, quantity: '' });
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const unsubscribeProject = onSnapshot(doc(db, 'projects', projectId), (docSnap) => {
@@ -116,6 +117,17 @@ const ProjectDetailsPage = () => {
         return total + (item.quantity * unitPrice);
     }, 0);
 
+    const filteredBom = bom.filter(item => {
+        const component = components[item.componentId];
+        if (!component) return false;
+        const searchText = searchTerm.toLowerCase();
+        return (
+            (item.componentId || '').toLowerCase().includes(searchText) ||
+            (component.name || '').toLowerCase().includes(searchText) ||
+            (component.manufacturerPartNo || '').toLowerCase().includes(searchText)
+        );
+    });
+
     return (
         <div className="project-details-page-container">
             {project ? (
@@ -152,6 +164,16 @@ const ProjectDetailsPage = () => {
                         <button onClick={handleAddComponentToBom}>Add to BOM</button>
                     </div>
 
+                    <div className="search-bom-form">
+                        <TextField
+                            label="Search Component in BOM"
+                            variant="outlined"
+                            style={{ width: 300 }}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
                     <table className="bom-table">
                         <thead>
                             <tr>
@@ -166,20 +188,21 @@ const ProjectDetailsPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {bom.map((item, index) => {
+                            {filteredBom.map((item, index) => {
                                 const component = components[item.componentId];
                                 const unitPrice = component ? parseFloat(component.pricing) || 0 : 0;
                                 const totalPrice = (item.quantity * unitPrice).toFixed(2);
+                                const originalBomIndex = bom.findIndex(bomItem => bomItem.componentId === item.componentId);
 
                                 return (
-                                    <tr key={index}>
+                                    <tr key={item.componentId}>
                                         <td>{index + 1}</td>
                                         <td>{item.componentId}</td>
                                         <td>{component?.manufacturerPartNo}</td>
                                         <td>
                                             {stockLocations.find(loc => loc.id === item.locationId)?.name}
                                         </td>
-                                        {editingBomItem.index === index ? (
+                                        {editingBomItem.index === originalBomIndex ? (
                                             <td>
                                                 <input
                                                     type="number"
@@ -198,7 +221,7 @@ const ProjectDetailsPage = () => {
                                         <td>₹{unitPrice.toFixed(2)}</td>
                                         <td>₹{totalPrice}</td>
                                         <td>
-                                            {editingBomItem.index === index ? (
+                                            {editingBomItem.index === originalBomIndex ? (
                                                 <>
                                                     <button className="action-button save-button" onClick={handleUpdateQuantity}>
                                                         Save
@@ -211,13 +234,13 @@ const ProjectDetailsPage = () => {
                                                 <>
                                                     <button
                                                         className="action-button edit-button"
-                                                        onClick={() => handleEditClick(index, item.quantity)}
+                                                        onClick={() => handleEditClick(originalBomIndex, item.quantity)}
                                                     >
                                                         Edit
                                                     </button>
                                                     <button
                                                         className="action-button delete-button"
-                                                        onClick={() => handleDeleteBomItem(index)}
+                                                        onClick={() => handleDeleteBomItem(originalBomIndex)}
                                                     >
                                                         Delete
                                                     </button>
