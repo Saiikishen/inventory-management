@@ -193,6 +193,7 @@ const AllDevicesPage = () => {
                                     <option value="order received">Order Received</option>
                                     <option value="production begun">Production Begun</option>
                                     <option value="shipped">Shipped</option>
+                                    <option value="deployed">Deployed</option>
                                 </select>
                             </div>
                              <div className="form-field">

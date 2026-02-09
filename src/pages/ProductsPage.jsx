@@ -1,10 +1,12 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import Dashboard from '../components/Dashboard';
 import './ProductsPage.css';
 
 const ProductsPage = () => {
     return (
         <div className="products-page">
+            <Dashboard />
             <nav className="products-nav">
                 <NavLink to="/products" end className={({ isActive }) => isActive ? 'products-nav-link active' : 'products-nav-link'}>
                     All Devices

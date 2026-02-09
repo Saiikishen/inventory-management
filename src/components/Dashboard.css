@@ -1,0 +1,26 @@
+.dashboard {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.dashboard-item {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex-grow: 1;
+    text-align: center;
+}
+
+.dashboard-item h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.dashboard-item p {
+    font-size: 2rem;
+    font-weight: bold;
+    color: orange;
+    margin: 0;
+}

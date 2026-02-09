@@ -57,7 +57,7 @@ const OrdersPage = () => {
         }
         try {
             const orderId = `${newOrder.product}-${Math.random().toString(36).substr(2, 9)}`;
-            await addDoc(collection(db, 'orders'), { ...newOrder, name: orderId, createdAt: new Date() });
+            await addDoc(collection(db, 'orders'), { ...newOrder, quantity: parseInt(newOrder.quantity, 10), name: orderId, createdAt: new Date() });
             setSnackbar({ open: true, message: 'Order added successfully!', type: 'success' });
             setNewOrder({ product: '', variant: '', quantity: '', remarks: '', referenceName: '' });
         } catch (error) {
