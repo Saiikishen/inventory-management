@@ -51,6 +51,12 @@ const ProjectDetailsPage = () => {
             return;
         }
 
+        const isDuplicate = bom.some(item => item.componentId === selectedComponent.id);
+        if (isDuplicate) {
+            setSnackbar({ open: true, message: 'This component is already in the BOM.', type: 'error' });
+            return;
+        }
+
         const newBom = [
             ...bom,
             { componentId: selectedComponent.id, locationId: selectedLocation, quantity: 1 }
@@ -149,6 +155,7 @@ const ProjectDetailsPage = () => {
                     <table className="bom-table">
                         <thead>
                             <tr>
+                                <th>Sl.No</th>
                                 <th>Component ID</th>
                                 <th>Manufacturer Part No:</th>
                                 <th>Location</th>
@@ -166,6 +173,7 @@ const ProjectDetailsPage = () => {
 
                                 return (
                                     <tr key={index}>
+                                        <td>{index + 1}</td>
                                         <td>{item.componentId}</td>
                                         <td>{component?.manufacturerPartNo}</td>
                                         <td>
