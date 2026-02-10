@@ -233,6 +233,7 @@ const AllDevicesPage = () => {
                                     <option value="">Select Status</option>
                                     <option value="order received">Order Received</option>
                                     <option value="production begun">Production Begun</option>
+                                    <option value="Device Assembled">Device Assembled</option>
                                     <option value="shipped">Shipped</option>
                                     <option value="deployed">Deployed</option>
                                 </select>

@@ -6,6 +6,7 @@ import './Dashboard.css';
 const Dashboard = () => {
     const [totalOrders, setTotalOrders] = useState(0);
     const [deployedItems, setDeployedItems] = useState(0);
+    const [assembledDevices, setAssembledDevices] = useState(0);
 
     useEffect(() => {
         const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
@@ -15,7 +16,9 @@ const Dashboard = () => {
 
         const unsubscribeDevices = onSnapshot(collection(db, 'devices'), (snapshot) => {
             const deployed = snapshot.docs.filter(doc => doc.data().status === 'deployed').length;
+            const assembled = snapshot.docs.filter(doc => doc.data().status === 'Device Assembled').length;
             setDeployedItems(deployed);
+            setAssembledDevices(assembled);
         });
 
         return () => {
@@ -35,6 +38,10 @@ const Dashboard = () => {
             <div className="dashboard-item">
                 <h3>Deployed Items</h3>
                 <p>{deployedItems}</p>
+            </div>
+            <div className="dashboard-item">
+                <h3>Assembled Devices</h3>
+                <p>{assembledDevices}</p>
             </div>
             <div className="dashboard-item">
                 <h3>Pending Orders</h3>
