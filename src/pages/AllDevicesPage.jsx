@@ -130,7 +130,7 @@ const AllDevicesPage = () => {
             {groupBy ? (
                 Object.keys(groupedDevices).map(group => (
                     <div key={group}>
-                        <h3>{groupBy === 'orderId' ? `Order ID: ${group}` : `Status: ${group}`}</h3>
+                        <h3>{groupBy === 'orderId' ? `Order ID: ${group}` : `Status: ${group}`} ({groupedDevices[group].length})</h3>
                         <div className="device-list">
                             {groupedDevices[group].map(device => (
                                 <div key={device.id} className="device-card">
