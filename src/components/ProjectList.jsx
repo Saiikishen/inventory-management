@@ -38,6 +38,8 @@ const ProjectList = () => {
   const [insufficientStockDialogOpen, setInsufficientStockDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [productionQuantity, setProductionQuantity] = useState(1);
+  const [partNumber, setPartNumber] = useState('');
+  const [remarks, setRemarks] = useState('');
   const [insufficientStockComponents, setInsufficientStockComponents] = useState([]);
   const [componentsForProduction, setComponentsForProduction] = useState([]);
 
@@ -78,6 +80,8 @@ const ProjectList = () => {
     setProductionDialogOpen(false);
     setSelectedProject(null);
     setProductionQuantity(1);
+    setPartNumber('');
+    setRemarks('');
   };
 
   const handleCreateProduction = async () => {
@@ -109,7 +113,9 @@ const ProjectList = () => {
         const batch = writeBatch(db);
         const details = [
             `Project: ${selectedProject.name}`,
+            `Part Number: ${partNumber}`,
             `Quantity Produced: ${productionQuantity}`,
+            `Remarks: ${remarks}`,
             'Components Used:',
         ];
 
@@ -144,7 +150,9 @@ const ProjectList = () => {
     const batch = writeBatch(db);
     const details = [
         `Project: ${selectedProject.name}`,
+        `Part Number: ${partNumber}`,
         `Quantity Produced: ${productionQuantity}`,
+        `Remarks: ${remarks}`,
         'Components Used (Forced Production):',
     ];
 
@@ -268,28 +276,46 @@ const ProjectList = () => {
 
         {/* Production Dialog */}
         <Dialog open={productionDialogOpen} onClose={handleCloseProductionDialog}>
-            <DialogTitle>Create Production Run</DialogTitle>
-            <DialogContent>
-                <DialogContentText>
-                    Enter the number of units to produce for <strong>{selectedProject?.name}</strong>.
-                </DialogContentText>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    label="Quantity"
-                    type="number"
-                    fullWidth
-                    variant="standard"
-                    value={productionQuantity}
-                    onChange={(e) => setProductionQuantity(e.target.value)}
-                    InputProps={{ inputProps: { min: 1 } }}
-                />
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={handleCloseProductionDialog}>Cancel</Button>
-                <Button onClick={handleCreateProduction} variant="contained">Create</Button>
-            </DialogActions>
-        </Dialog>
+    <DialogTitle>Create Production Run</DialogTitle>
+    <DialogContent>
+        <DialogContentText>
+            Enter the number of units to produce for <strong>{selectedProject?.name}</strong>.
+        </DialogContentText>
+        <TextField
+            autoFocus
+            margin="dense"
+            label="Quantity"
+            type="number"
+            fullWidth
+            variant="standard"
+            value={productionQuantity}
+            onChange={(e) => setProductionQuantity(e.target.value)}
+            InputProps={{ inputProps: { min: 1 } }}
+        />
+        <TextField
+            margin="dense"
+            label="Part Number"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={partNumber}
+            onChange={(e) => setPartNumber(e.target.value)}
+        />
+        <TextField
+            margin="dense"
+            label="Remarks"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+        />
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={handleCloseProductionDialog}>Cancel</Button>
+        <Button onClick={handleCreateProduction} variant="contained">Create</Button>
+    </DialogActions>
+</Dialog>
 
         {/* Insufficient Stock Dialog */}
         <Dialog open={insufficientStockDialogOpen} onClose={handleCloseInsufficientStockDialog}>

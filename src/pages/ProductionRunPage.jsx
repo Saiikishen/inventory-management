@@ -20,6 +20,10 @@ const ProductionRunPage = () => {
     const [isForceModalOpen, setIsForceModalOpen] = useState(false);
     const [insufficientStockItems, setInsufficientStockItems] = useState([]);
     const [isStockCheckModalOpen, setIsStockCheckModalOpen] = useState(false);
+    const [isRemarksModalOpen, setIsRemarksModalOpen] = useState(false);
+    const [remarks, setRemarks] = useState('');
+    const [partNumber, setPartNumber] = useState('');
+    const [productionRunType, setProductionRunType] = useState(null);
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -103,7 +107,25 @@ const ProductionRunPage = () => {
         setIsLoading(false);
     };
 
-    const executeProductionRun = async (force = false) => {
+    const openRemarksModal = (type) => {
+        setProductionRunType(type);
+        setIsRemarksModalOpen(true);
+        setIsStockCheckModalOpen(false);
+        setIsForceModalOpen(false);
+    };
+
+    const handleConfirmRemarks = () => {
+        if (productionRunType === 'force') {
+            executeProductionRun(true, remarks, partNumber);
+        } else {
+            executeProductionRun(false, remarks, partNumber);
+        }
+        setIsRemarksModalOpen(false);
+        setRemarks('');
+        setPartNumber('');
+    };
+
+    const executeProductionRun = async (force = false, remarks = '', partNumber = '') => {
         if (!force && (!stockCheckResult || !isStockAvailable)) {
             setSnackbar({ open: true, message: 'Cannot execute run. Stock not available.', type: 'error' });
             return;
@@ -122,7 +144,7 @@ const ProductionRunPage = () => {
                 const newLocations = componentData.locations.map(location => {
                     if (location.id === item.locationId) {
                         if (force && !item.hasEnoughStock) {
-                            return { ...location, stock: 0 }; // Force production sets stock to 0
+                            return { ...location, stock: 0 };
                         }
                         return { ...location, stock: location.stock - item.requiredQuantity };
                     }
@@ -134,6 +156,8 @@ const ProductionRunPage = () => {
             const transactionDetails = [
                 `Project: ${project.name}`,
                 `Quantity Produced: ${productionQuantity}`,
+                `Part Number: ${partNumber}`,
+                `Remarks: ${remarks}`,
                 force ? 'Components Used (FORCED RUN):' : 'Components Used:',
                 ...stockCheckResult.map(item => {
                     if (force && !item.hasEnoughStock) {
@@ -192,7 +216,7 @@ const ProductionRunPage = () => {
                         stockCheckResult={stockCheckResult}
                         isStockAvailable={isStockAvailable}
                         isLoading={isLoading}
-                        executeProductionRun={executeProductionRun}
+                        executeProductionRun={() => openRemarksModal('normal')}
                         openForceModal={openForceModal}
                     />
 
@@ -215,8 +239,26 @@ const ProductionRunPage = () => {
                             </table>
                         </div>
                         <div className="stock-check-actions">
-                            <button onClick={() => executeProductionRun(true)} className="run-button">Confirm & Proceed</button>
+                            <button onClick={() => openRemarksModal('force')} className="run-button">Confirm & Proceed</button>
                             <button onClick={() => { setIsForceModalOpen(false); setIsStockCheckModalOpen(true);}} className="cancel-button">Cancel</button>
+                        </div>
+                    </Modal>
+
+                    <Modal isOpen={isRemarksModalOpen} onRequestClose={() => setIsRemarksModalOpen(false)} contentLabel="Production Run Remarks" className="modal" overlayClassName="overlay">
+                        <div className="stock-check-header">Production Run Details</div>
+                        <div className="stock-check-body">
+                            <div className="form-group">
+                                <label htmlFor="partNumber">Part Number:</label>
+                                <input id="partNumber" type="text" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="remarks">Remarks:</label>
+                                <textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="stock-check-actions">
+                            <button onClick={handleConfirmRemarks} className="run-button">Confirm Production Run</button>
+                            <button onClick={() => setIsRemarksModalOpen(false)} className="cancel-button">Cancel</button>
                         </div>
                     </Modal>
                 </>
