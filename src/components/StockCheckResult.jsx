@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from 'react-modal';
+import * as XLSX from 'xlsx';
 import './StockCheckResult.css';
 
 const StockCheckResult = ({
@@ -12,6 +13,13 @@ const StockCheckResult = ({
     openForceModal,
 }) => {
     if (!stockCheckResult) return null;
+
+    const handleDownload = () => {
+        const worksheet = XLSX.utils.json_to_sheet(stockCheckResult);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Stock Check Results");
+        XLSX.writeFile(workbook, "stock_check_results.xlsx");
+    };
 
     return (
         <Modal
@@ -58,6 +66,7 @@ const StockCheckResult = ({
                 {!isStockAvailable && stockCheckResult.some(item => !item.hasEnoughStock) && !isLoading && (
                     <button onClick={openForceModal} className="stock-check-button force-run-button">Force Production Run</button>
                 )}
+                <button onClick={handleDownload} className="stock-check-button download-button">Download</button>
                 <button onClick={onRequestClose} className="stock-check-button cancel-button">Close</button>
             </div>
         </Modal>
