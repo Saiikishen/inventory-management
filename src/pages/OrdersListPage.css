@@ -56,8 +56,18 @@
 .priority-selector {
     display: flex;
     align-items: center;
+    margin-bottom: 10px;
 }
 
 .priority-selector label {
     margin-right: 10px;
+}
+
+.edit-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
 }
