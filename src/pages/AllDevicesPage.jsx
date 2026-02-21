@@ -117,7 +117,7 @@ const AllDevicesPage = () => {
             <div className="search-bar">
                 <input
                     type="text"
-                    placeholder="Search by Part Number..."
+                    placeholder="Search by Serial Number..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -134,7 +134,7 @@ const AllDevicesPage = () => {
                         <div className="device-list">
                             {groupedDevices[group].map(device => (
                                 <div key={device.id} className="device-card">
-                                    <h3>Part Number: {device.partNumber}</h3>
+                                    <h3>Serial Number: {device.partNumber}</h3>
                                     <p><strong>Order ID:</strong> {device.orderId || 'N/A'}</p>
                                     <p><strong>Client Name:</strong> {device.clientName || 'N/A'}</p>
                                     <p><strong>Location:</strong> {device.location || 'N/A'}</p>
@@ -155,7 +155,7 @@ const AllDevicesPage = () => {
                 <div className="device-list">
                     {filteredDevices.map(device => (
                         <div key={device.id} className="device-card">
-                            <h3>Part Number: {device.partNumber}</h3>
+                            <h3>Serial Number: {device.partNumber}</h3>
                             <p><strong>Order ID:</strong> {device.orderId || 'N/A'}</p>
                             <p><strong>Client Name:</strong> {device.clientName || 'N/A'}</p>
                             <p><strong>Location:</strong> {device.location || 'N/A'}</p>
