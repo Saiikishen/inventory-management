@@ -34,7 +34,8 @@ const AllDevicesPage = () => {
 
     useEffect(() => {
         const results = devices.filter(device =>
-            device.partNumber.toLowerCase().includes(searchTerm.toLowerCase())
+            device.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (device.clientName && device.clientName.toLowerCase().includes(searchTerm.toLowerCase()))
         );
         setFilteredDevices(results);
     }, [searchTerm, devices]);
@@ -117,7 +118,7 @@ const AllDevicesPage = () => {
             <div className="search-bar">
                 <input
                     type="text"
-                    placeholder="Search by Serial Number..."
+                    placeholder="Search by Serial Number or Client Name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
