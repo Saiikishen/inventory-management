@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import './OrdersListPage.css';
 
@@ -9,7 +9,15 @@ const OrdersListPage = () => {
 
     useEffect(() => {
         const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
-            const ordersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+            const priorityMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
+            const ordersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => {
+                const priorityA = priorityMap[a.priority] || 0;
+                const priorityB = priorityMap[b.priority] || 0;
+                if (priorityB !== priorityA) {
+                    return priorityB - priorityA;
+                }
+                return b.createdAt?.seconds - a.createdAt?.seconds;
+            });
             setOrders(ordersData);
         });
 
@@ -32,6 +40,11 @@ const OrdersListPage = () => {
         };
     }, []);
 
+    const handlePriorityChange = async (orderId, priority) => {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, { priority });
+    };
+
     return (
         <div className="orders-list-page">
             <h2>All Orders</h2>
@@ -45,6 +58,17 @@ const OrdersListPage = () => {
                             <p><strong>Quantity:</strong> {order.quantity}</p>
                             <p><strong>Remarks:</strong> {order.remarks}</p>
                             {order.createdAt && <p><strong>Order Date:</strong> {new Date(order.createdAt.seconds * 1000).toLocaleString()}</p>}
+                        </div>
+                        <div className="order-card-actions">
+                            {order.priority && <span className={`priority-stamp ${order.priority.toLowerCase()}`}>{order.priority}</span>}
+                            <div className="priority-selector">
+                                <label>Priority: </label>
+                                <select value={order.priority || 'Medium'} onChange={(e) => handlePriorityChange(order.id, e.target.value)}>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 

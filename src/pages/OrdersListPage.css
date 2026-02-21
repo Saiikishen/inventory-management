@@ -12,6 +12,8 @@
 }
 
 .order-card-header {
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 15px;
 }
 
@@ -19,8 +21,43 @@
     margin: 0;
 }
 
+.order-card-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
 .device-details {
     padding-left: 20px;
     border-left: 3px solid #007bff;
     margin-top: 15px;
+}
+
+.priority-stamp {
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.priority-stamp.high {
+    background-color: #dc3545;
+}
+
+.priority-stamp.medium {
+    background-color: #ffc107;
+}
+
+.priority-stamp.low {
+    background-color: #28a745;
+}
+
+.priority-selector {
+    display: flex;
+    align-items: center;
+}
+
+.priority-selector label {
+    margin-right: 10px;
 }
