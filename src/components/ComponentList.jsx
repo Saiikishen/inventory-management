@@ -31,6 +31,7 @@ const ComponentList = () => {
     const [componentToDelete, setComponentToDelete] = useState(null);
 
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const unsubscribeComponents = onSnapshot(collection(db, 'components'), (snapshot) => {
@@ -262,6 +263,10 @@ const ComponentList = () => {
         }).reduce((prev, curr) => [prev, ', ', curr]);
     };
 
+    const filteredComponents = components.filter(component =>
+        component.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div className="component-list-container">
             <h1>Manage Components</h1>
@@ -295,13 +300,23 @@ const ComponentList = () => {
                         <ul>
                             {stockLocations.map(location => (
                                 <li key={location.id}>{location.name}<button type="button" onClick={() => handleDeleteLocation(location.id)}>Delete</button></li>
-                            ))}
+                            ))}\
                         </ul>
                     </div>
                 )}
                 <div className="add-component-button-container">
                   <button type="button" onClick={handleAddComponent} className="add-component-button">Add Component</button>
                 </div>
+            </div>
+
+            <div className="search-container" style={{ margin: '20px 0' }}>
+                <input
+                    type="text"
+                    placeholder="Search by Component ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: '100%', padding: '10px', fontSize: '16px' }}
+                />
             </div>
 
             <table className="component-table">
@@ -316,7 +331,7 @@ const ComponentList = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {components.map((component) => (
+                    {filteredComponents.map((component) => (
                         <tr key={component.id}>
                             <td>{component.id}</td>
                             <td>
