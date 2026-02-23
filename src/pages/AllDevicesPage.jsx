@@ -120,7 +120,7 @@ const AllDevicesPage = () => {
             <div className="search-bar">
                 <input
                     type="text"
-                    placeholder="Search by Serial Number, Serial Number, or Client Name..."
+                    placeholder="Search by Serial Number, Part Number, or Client Name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
