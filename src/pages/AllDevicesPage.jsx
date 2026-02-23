@@ -35,6 +35,7 @@ const AllDevicesPage = () => {
     useEffect(() => {
         const results = devices.filter(device =>
             device.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (device.serialNumber && device.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (device.clientName && device.clientName.toLowerCase().includes(searchTerm.toLowerCase()))
         );
         setFilteredDevices(results);
@@ -68,7 +69,8 @@ const AllDevicesPage = () => {
             wifiConfig: device.wifiConfig || { ssid: '', password: '' },
             type: device.type || { display: '', pcbVersion: '', firmwareVersion: '' },
             estDeliveryDate: device.estDeliveryDate || '',
-            status: device.status || ''
+            status: device.status || '',
+            serialNumber: device.serialNumber || ''
         });
         setEditModalOpen(true);
     };
@@ -118,7 +120,7 @@ const AllDevicesPage = () => {
             <div className="search-bar">
                 <input
                     type="text"
-                    placeholder="Search by Serial Number or Client Name..."
+                    placeholder="Search by Serial Number, Serial Number, or Client Name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -136,6 +138,7 @@ const AllDevicesPage = () => {
                             {groupedDevices[group].map(device => (
                                 <div key={device.id} className="device-card">
                                     <h3>Serial Number: {device.partNumber}</h3>
+                                    <p><strong>Part Number:</strong> {device.serialNumber || 'N/A'}</p>
                                     <p><strong>Order ID:</strong> {device.orderId || 'N/A'}</p>
                                     <p><strong>Client Name:</strong> {device.clientName || 'N/A'}</p>
                                     <p><strong>Location:</strong> {device.location || 'N/A'}</p>
@@ -157,6 +160,7 @@ const AllDevicesPage = () => {
                     {filteredDevices.map(device => (
                         <div key={device.id} className="device-card">
                             <h3>Serial Number: {device.partNumber}</h3>
+                            <p><strong>Part Number:</strong> {device.serialNumber || 'N/A'}</p>
                             <p><strong>Order ID:</strong> {device.orderId || 'N/A'}</p>
                             <p><strong>Client Name:</strong> {device.clientName || 'N/A'}</p>
                             <p><strong>Location:</strong> {device.location || 'N/A'}</p>
@@ -192,8 +196,12 @@ const AllDevicesPage = () => {
                         <h2>Edit Device</h2>
                         <form onSubmit={handleUpdate} className="edit-form device-form">
                             <div className="form-field">
-                                <label>Part Number</label>
+                                <label>Serial Number</label>
                                 <input type="text" value={selectedDevice.partNumber} readOnly disabled />
+                            </div>
+                            <div className="form-field">
+                                <label>Part Number</label>
+                                <input type="text" name="serialNumber" value={selectedDevice.serialNumber} onChange={handleEditChange} placeholder="Serial Number" />
                             </div>
                             <div className="form-field">
                                 <label>Device ID</label>

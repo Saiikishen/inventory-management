@@ -10,6 +10,7 @@ const DevicesPage = () => {
         clientName: '',
         location: '',
         partNumber: '',
+        serialNumber: '',
         deviceId: '',
         wifiConfig: { ssid: '', password: '' },
         count: '',
@@ -109,6 +110,7 @@ const DevicesPage = () => {
                 clientName: '',
                 location: '',
                 partNumber: '',
+                serialNumber: '',
                 deviceId: '',
                 wifiConfig: { ssid: '', password: '' },
                 count: '',
@@ -159,8 +161,12 @@ const DevicesPage = () => {
                     </div>
                 )}
                  <div className="form-field">
-                    <label htmlFor="partNumber">Part Number</label>
+                    <label htmlFor="partNumber">Serial Number</label>
                     <input id="partNumber" type="text" name="partNumber" value={device.partNumber} onChange={handleChange} required />
+                </div>
+                <div className="form-field">
+                    <label htmlFor="serialNumber">Part Number</label>
+                    <input id="serialNumber" type="text" name="serialNumber" value={device.serialNumber} onChange={handleChange} />
                 </div>
                 <div className="form-field">
                     <label htmlFor="orderId">Order</label>
