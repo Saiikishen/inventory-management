@@ -201,7 +201,7 @@ const AllDevicesPage = () => {
                             </div>
                             <div className="form-field">
                                 <label>Part Number</label>
-                                <input type="text" name="serialNumber" value={selectedDevice.serialNumber} onChange={handleEditChange} placeholder="Serial Number" />
+                                <input type="text" name="serialNumber" value={selectedDevice.serialNumber} onChange={handleEditChange} placeholder="Part Number" />
                             </div>
                             <div className="form-field">
                                 <label>Device ID</label>
