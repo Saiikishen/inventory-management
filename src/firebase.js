@@ -11,7 +11,7 @@ const firebaseConfig = {
   "projectId": "inventory-management-chargemod",
   "appId": "1:1063128859463:web:cac3762c0951e0b8940262",
   "storageBucket": "inventory-management-chargemod.appspot.com",
-  "apiKey": "AIzaSyAgZ9kb6_fqxqqt5R3w1hkll4AEq_GBPRs",
+  "apiKey": "",
   "authDomain": "inventory-management-chargemod.firebaseapp.com",
   "messagingSenderId": "1063128859463",
 };
