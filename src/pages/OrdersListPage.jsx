@@ -9,6 +9,7 @@ const OrdersListPage = () => {
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', type: 'success' });
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
@@ -78,10 +79,24 @@ const OrdersListPage = () => {
         }
     };
 
+    const filteredOrders = orders.filter(order =>
+        order.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.referenceName && order.referenceName.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
     return (
         <div className="orders-list-page">
             <h2>All Orders</h2>
-            {orders.map(order => (
+            <div className="search-bar">
+                <input
+                    type="text"
+                    placeholder="Search by Order ID or Reference Name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+
+            {filteredOrders.map(order => (
                 <div key={order.id} className="order-card">
                     <div className="order-card-header">
                         <div>
