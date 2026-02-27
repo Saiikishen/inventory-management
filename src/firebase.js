@@ -9,11 +9,11 @@ import { getFirestore, collection, addDoc, doc, updateDoc } from "firebase/fires
 // Your web app's Firebase configuration
 const firebaseConfig = {
   "projectId": "inventory-management-chargemod",
-  "appId": "1:1063128859463:web:cac3762c0951e0b8940262",
+  "appId": "",
   "storageBucket": "inventory-management-chargemod.appspot.com",
   "apiKey": "",
   "authDomain": "inventory-management-chargemod.firebaseapp.com",
-  "messagingSenderId": "1063128859463",
+  "messagingSenderId": "",
 };
 
 // Initialize Firebase
