@@ -168,7 +168,7 @@ const HomePage = () => {
                     {searchInventory.length > 0 ? (
                         searchInventory.map(item => (
                             <Typography key={item.id}>
-                                {getLocationName(item.stockLocation)}: {item.quantity}
+                                {getLocationName(item.stockLocation)}: <span style={{ fontWeight: 'bold', color: 'purple' }}>{item.quantity}</span>
                             </Typography>
                         ))
                     ) : (
@@ -198,8 +198,8 @@ const HomePage = () => {
                     <React.Fragment key={comp.id}>
                         <ListItem className="list-item-container">
                             <ListItemText 
-                                primary={`${comp.name} (Total: ${comp.totalQuantity})`} 
-                                secondary={(
+                                primary={<>{comp.name} (Total: <span style={{ fontWeight: 'bold', color: 'green' }}>{comp.totalQuantity}</span>)</>} 
+                                secondary={
                                     <>
                                         <Typography component="span" variant="body2" color="text.primary">
                                             ID: {comp.id}
@@ -210,14 +210,14 @@ const HomePage = () => {
                                             </Typography>
                                         }
                                     </>
-                                )}
+                                }
                             />
                         </ListItem>
                         <Collapse in={true} timeout="auto" unmountOnExit>
                             <List component="div" disablePadding sx={{ pl: 4 }}>
                                 {comp.inventory.length > 0 ? comp.inventory.map(invItem => (
                                     <ListItem key={`${comp.id}-${invItem.stockLocation}`}>
-                                        <ListItemText primary={`${getLocationName(invItem.stockLocation)}: ${invItem.quantity}`} />
+                                        <ListItemText primary={<>{getLocationName(invItem.stockLocation)}: <span style={{ fontWeight: 'bold', color: 'blue' }}>{invItem.quantity}</span></>} />
                                     </ListItem>
                                 )) : <ListItem><ListItemText primary="No stock information available." /></ListItem>}
                             </List>

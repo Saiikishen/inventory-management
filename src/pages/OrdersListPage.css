@@ -53,6 +53,10 @@
     background-color: #28a745;
 }
 
+.priority-stamp.deployed {
+    background-color: #006400;
+}
+
 .priority-selector {
     display: flex;
     align-items: center;

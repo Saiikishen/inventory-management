@@ -13,7 +13,7 @@ const OrdersListPage = () => {
 
     useEffect(() => {
         const unsubscribeOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
-            const priorityMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
+            const priorityMap = { 'High': 4, 'Medium': 3, 'Low': 2, 'Deployed': 1 };
             const ordersData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })).sort((a, b) => {
                 const priorityA = priorityMap[a.priority] || 0;
                 const priorityB = priorityMap[b.priority] || 0;
@@ -112,10 +112,12 @@ const OrdersListPage = () => {
                             {order.priority && <span className={`priority-stamp ${order.priority.toLowerCase()}`}>{order.priority}</span>}
                             <div className="priority-selector">
                                 <label>Priority: </label>
-                                <select value={order.priority || 'Medium'} onChange={(e) => handlePriorityChange(order.id, e.target.value)}>
+                                <select value={order.priority || ''} onChange={(e) => handlePriorityChange(order.id, e.target.value)}>
+                                    <option value="">Select</option>
                                     <option value="High">High</option>
                                     <option value="Medium">Medium</option>
                                     <option value="Low">Low</option>
+                                    <option value="Deployed">Deployed</option>
                                 </select>
                             </div>
                             <button onClick={() => openEditModal(order)} className="action-button edit-button">Edit</button>
