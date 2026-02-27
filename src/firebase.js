@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, doc, updateDoc } from "firebase/firestore";
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -31,5 +31,18 @@ export const createProject = async (projectName) => {
     } catch (error) {
         console.error("Error creating project: ", error);
         return null;
+    }
+};
+
+export const updateProjectName = async (projectId, newName) => {
+    try {
+        const projectRef = doc(db, "projects", projectId);
+        await updateDoc(projectRef, {
+            name: newName,
+        });
+        return true;
+    } catch (error) {
+        console.error("Error updating project name: ", error);
+        return false;
     }
 };

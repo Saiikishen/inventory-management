@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, getDoc, writeBatch, deleteDoc, addDoc, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, doc, getDoc, writeBatch, deleteDoc, addDoc, Timestamp, updateDoc } from "firebase/firestore";
 import { 
     Grid,
     Card,
@@ -27,6 +27,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { Link } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import BuildIcon from '@mui/icons-material/Build';
+import EditIcon from '@mui/icons-material/Edit';
 
 const ProjectList = () => {
   const [projects, setProjects] = useState([]);
@@ -42,6 +43,11 @@ const ProjectList = () => {
   const [remarks, setRemarks] = useState('');
   const [insufficientStockComponents, setInsufficientStockComponents] = useState([]);
   const [componentsForProduction, setComponentsForProduction] = useState([]);
+
+  // State for editing project name
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [editedProjectName, setEditedProjectName] = useState('');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
@@ -82,6 +88,30 @@ const ProjectList = () => {
     setProductionQuantity(1);
     setPartNumber('');
     setRemarks('');
+  };
+
+  const handleOpenEditDialog = (project) => {
+    setEditingProject(project);
+    setEditedProjectName(project.name);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setEditingProject(null);
+    setEditedProjectName('');
+  };
+
+  const handleUpdateProjectName = async () => {
+    if (!editingProject || editedProjectName.trim() === '') return;
+    try {
+      const projectRef = doc(db, 'projects', editingProject.id);
+      await updateDoc(projectRef, { name: editedProjectName });
+      setSnackbar({ open: true, message: 'Project name updated successfully!', severity: 'success' });
+      handleCloseEditDialog();
+    } catch (error) {
+      setSnackbar({ open: true, message: `Error: ${error.message}`, severity: 'error' });
+    }
   };
 
   const handleCreateProduction = async () => {
@@ -244,6 +274,12 @@ const ProjectList = () => {
                             </Typography>
                         </CardContent>
                         <CardActions sx={{ justifyContent: 'flex-end' }}>
+                             <IconButton 
+                                aria-label="edit project"
+                                onClick={() => handleOpenEditDialog(project)}
+                            >
+                                <EditIcon />
+                            </IconButton>
                             <IconButton 
                                 aria-label="create production"
                                 onClick={() => handleOpenProductionDialog(project)}
@@ -316,6 +352,27 @@ const ProjectList = () => {
         <Button onClick={handleCreateProduction} variant="contained">Create</Button>
     </DialogActions>
 </Dialog>
+
+        {/* Edit Project Name Dialog */}
+        <Dialog open={editDialogOpen} onClose={handleCloseEditDialog}>
+            <DialogTitle>Edit Project Name</DialogTitle>
+            <DialogContent>
+                <TextField
+                    autoFocus
+                    margin="dense"
+                    label="Project Name"
+                    type="text"
+                    fullWidth
+                    variant="standard"
+                    value={editedProjectName}
+                    onChange={(e) => setEditedProjectName(e.target.value)}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleCloseEditDialog}>Cancel</Button>
+                <Button onClick={handleUpdateProjectName}>Save</Button>
+            </DialogActions>
+        </Dialog>
 
         {/* Insufficient Stock Dialog */}
         <Dialog open={insufficientStockDialogOpen} onClose={handleCloseInsufficientStockDialog}>

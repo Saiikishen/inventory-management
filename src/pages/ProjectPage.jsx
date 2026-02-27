@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
-import { db, createProject } from '../firebase';
-import { FaTrash, FaPlay } from 'react-icons/fa';
+import { db, createProject, updateProjectName } from '../firebase';
+import { FaTrash, FaPlay, FaEdit } from 'react-icons/fa';
 import Modal from 'react-modal';
 import './ProjectPage.css';
 
@@ -16,6 +16,9 @@ const ProjectPage = () => {
     const navigate = useNavigate();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [projectToDelete, setProjectToDelete] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [projectToEdit, setProjectToEdit] = useState(null);
+    const [editedProjectName, setEditedProjectName] = useState('');
 
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
@@ -63,6 +66,34 @@ const ProjectPage = () => {
         }
     };
 
+    const openEditModal = (project) => {
+        setProjectToEdit(project);
+        setEditedProjectName(project.name);
+        setIsEditModalOpen(true);
+    };
+
+    const closeEditModal = () => {
+        setProjectToEdit(null);
+        setIsEditModalOpen(false);
+    };
+
+    const confirmEditProject = async () => {
+        if (projectToEdit) {
+            try {
+                const success = await updateProjectName(projectToEdit.id, editedProjectName);
+                if (success) {
+                    setSnackbar({ open: true, message: 'Project name updated successfully!', type: 'success' });
+                } else {
+                    setSnackbar({ open: true, message: 'Error updating project name.', type: 'error' });
+                }
+            } catch (error) {
+                setSnackbar({ open: true, message: `Error updating project: ${error.message}`, type: 'error' });
+            } finally {
+                closeEditModal();
+            }
+        }
+    };
+
     const handleProductionRun = (projectId) => {
         navigate(`/projects/${projectId}/production`);
     };
@@ -96,6 +127,7 @@ const ProjectPage = () => {
                         {hoveredProjectId === project.id && (
                             <div className="project-actions">
                                 <button className="icon-button production-run-button" onClick={() => handleProductionRun(project.id)}><FaPlay /> </button>
+                                <button className="icon-button edit-button" onClick={() => openEditModal(project)}><FaEdit /></button>
                                 <button className="icon-button delete-button" onClick={() => openDeleteModal(project.id)}><FaTrash /></button>
                             </div>
                         )}
@@ -115,6 +147,25 @@ const ProjectPage = () => {
                 <div className="modal-actions">
                     <button onClick={confirmDeleteProject} className="run-button">Delete</button>
                     <button onClick={closeDeleteModal} className="cancel-button">Cancel</button>
+                </div>
+            </Modal>
+
+            <Modal 
+                isOpen={isEditModalOpen} 
+                onRequestClose={closeEditModal} 
+                contentLabel="Edit Project Name" 
+                className="modal"
+                overlayClassName="overlay"
+            >
+                <h2>Edit Project Name</h2>
+                <input 
+                    type="text" 
+                    value={editedProjectName} 
+                    onChange={(e) => setEditedProjectName(e.target.value)} 
+                />
+                <div className="modal-actions">
+                    <button onClick={confirmEditProject} className="run-button">Save</button>
+                    <button onClick={closeEditModal} className="cancel-button">Cancel</button>
                 </div>
             </Modal>
 
